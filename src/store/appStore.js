@@ -23,6 +23,15 @@ export const useAppStore = create((set, get) => ({
   // Actions
   setProject: (project) => set({ project }),
   
+  loadProject: async (projectData) => {
+    set({ 
+      project: projectData.project,
+      projectFiles: projectData.project.structure || [],
+      techStack: projectData.analysis?.techStack || [],
+      dependencies: projectData.analysis?.dependencies?.production || []
+    });
+  },
+  
   setProjectFiles: (files) => set({ projectFiles: files }),
   
   setSelectedFile: (file) => set({ selectedFile: file }),
@@ -46,6 +55,14 @@ export const useAppStore = create((set, get) => ({
   })),
   
   clearTerminalOutput: () => set({ terminalOutput: [] }),
+  
+  setTerminalHistory: (history) => set({ 
+    terminalOutput: history.map(item => ({
+      id: item.id,
+      text: item.text,
+      timestamp: item.timestamp
+    }))
+  }),
   
   setProjectRunning: (running) => set({ isProjectRunning: running }),
   

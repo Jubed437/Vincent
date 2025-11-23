@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
+const VincentEngine = require('./backend/engine');
 
 let mainWindow;
+let vincentEngine;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -14,6 +16,9 @@ function createWindow() {
     backgroundColor: '#1e1e1e'
   });
 
+  // Initialize Vincent Engine
+  vincentEngine = new VincentEngine(mainWindow);
+  
   // IPC handlers for window controls
   ipcMain.on('minimize-window', () => mainWindow.minimize());
   ipcMain.on('maximize-window', () => {

@@ -1,6 +1,7 @@
 import { Upload, Search, Download, Play, Square, Settings, Minus, Maximize2, X } from 'lucide-react';
 import Button from '../ui/Button';
 import { useAppStore } from '../../store/appStore';
+import electronAPI from '../../utils/electronAPI';
 
 const Header = () => {
   const { 
@@ -10,34 +11,34 @@ const Header = () => {
     addTerminalOutput 
   } = useAppStore();
 
-  const handleUpload = () => {
-    setShowUploadModal(true);
+  const handleUpload = async () => {
+    const result = await electronAPI.selectProjectFolder();
+    if (result.success) {
+      addTerminalOutput(`📁 Project loaded: ${result.data.project.path}`);
+    }
   };
 
-  const handleDetectTechStack = () => {
-    addTerminalOutput('🔍 Detecting technology stack...');
-    setTimeout(() => {
-      addTerminalOutput('✅ Tech stack detected: React, Express, MongoDB');
-    }, 1500);
+  const handleDetectTechStack = async () => {
+    const result = await electronAPI.checkSystemDependencies();
+    if (result.success) {
+      addTerminalOutput('✅ System dependencies checked');
+    }
   };
 
-  const handleInstallDependencies = () => {
-    addTerminalOutput('📦 Installing dependencies...');
-    setTimeout(() => {
-      addTerminalOutput('✅ Dependencies installed successfully');
-    }, 2000);
+  const handleInstallDependencies = async () => {
+    // This will be handled by project path from store
+    addTerminalOutput('📦 Use Upload Project first');
   };
 
-  const handleStartProject = () => {
+  const handleStartProject = async () => {
     if (isProjectRunning) {
-      setProjectRunning(false);
-      addTerminalOutput('🛑 Project stopped');
+      const result = await electronAPI.stopProject();
+      if (result.success) {
+        setProjectRunning(false);
+      }
     } else {
-      setProjectRunning(true);
-      addTerminalOutput('🚀 Starting project...');
-      setTimeout(() => {
-        addTerminalOutput('✅ Project running on http://localhost:3000');
-      }, 1000);
+      // This will be handled by project path from store
+      addTerminalOutput('🚀 Use Upload Project first');
     }
   };
 
@@ -102,21 +103,21 @@ const Header = () => {
           variant="ghost"
           size="sm"
           icon={Minus}
-          onClick={() => window.require('electron').ipcRenderer.send('minimize-window')}
+          onClick={() => electronAPI.minimizeWindow()}
           className="hover:bg-vscode-hover p-2"
         />
         <Button
           variant="ghost"
           size="sm"
           icon={Maximize2}
-          onClick={() => window.require('electron').ipcRenderer.send('maximize-window')}
+          onClick={() => electronAPI.maximizeWindow()}
           className="hover:bg-vscode-hover p-2"
         />
         <Button
           variant="ghost"
           size="sm"
           icon={X}
-          onClick={() => window.require('electron').ipcRenderer.send('close-window')}
+          onClick={() => electronAPI.closeWindow()}
           className="hover:bg-red-600 p-2"
         />
       </div>
