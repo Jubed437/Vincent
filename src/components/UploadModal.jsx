@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, FolderOpen, File, X } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
+import electronAPI from '../utils/electronAPI';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import Card from './ui/Card';
@@ -14,7 +15,8 @@ const UploadModal = () => {
   const { 
     showUploadModal, 
     setShowUploadModal, 
-    initializeMockData,
+    loadProject,
+    setLoading,
     addTerminalOutput 
   } = useAppStore();
 
@@ -33,43 +35,74 @@ const UploadModal = () => {
     e.stopPropagation();
     setDragActive(false);
     
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      handleUpload(files[0]);
-    }
+    // For now, use folder upload since we need directory paths
+    handleFolderUpload();
   };
 
   const handleFileSelect = (e) => {
-    const files = e.target.files;
-    if (files && files[0]) {
-      handleUpload(files[0]);
-    }
+    // For now, use folder upload since we need directory paths
+    handleFolderUpload();
   };
 
-  const handleUpload = async (file) => {
+  const handleUpload = async (projectPath) => {
     setIsUploading(true);
-    addTerminalOutput(`📁 Uploading project: ${file.name}`);
+    setLoading(true);
+    console.log('upload: started', projectPath);
+    addTerminalOutput(`📁 Loading project: ${projectPath}`);
     
-    // Simulate upload progress
-    for (let i = 0; i <= 100; i += 10) {
-      setUploadProgress(i);
-      await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      // Simulate progress
+      for (let i = 0; i <= 30; i += 10) {
+        setUploadProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      addTerminalOutput('🔍 Scanning project files...');
+      setUploadProgress(50);
+      
+      // Analyze the project (this includes scanning + tech detection)
+      const analysisResult = await electronAPI.analyzeProject(projectPath);
+      console.log('upload: analysis result received', analysisResult);
+      
+      setUploadProgress(80);
+      
+      if (analysisResult.success) {
+        await loadProject(analysisResult);
+        addTerminalOutput(`✅ Found ${analysisResult.data.metadata?.totalFiles || 0} files`);
+        addTerminalOutput(`🔧 Detected: ${analysisResult.data.projectType || 'JavaScript Project'}`);
+        addTerminalOutput(`📦 Found ${(analysisResult.data.dependencies?.production?.length || 0) + (analysisResult.data.dependencies?.development?.length || 0)} dependencies`);
+        addTerminalOutput('✅ Project loaded successfully');
+      } else {
+        addTerminalOutput(`❌ Analysis failed: ${analysisResult.message}`);
+      }
+      
+      setUploadProgress(100);
+      
+    } catch (error) {
+      console.error('upload: error', error);
+      addTerminalOutput(`❌ Error: ${error.message}`);
+    } finally {
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+        setLoading(false);
+        setShowUploadModal(false);
+      }, 1000);
     }
-    
-    // Initialize mock data after upload
-    setTimeout(() => {
-      initializeMockData();
-      addTerminalOutput('✅ Project uploaded successfully');
-      addTerminalOutput('🔍 Analyzing project structure...');
-      setIsUploading(false);
-      setUploadProgress(0);
-      setShowUploadModal(false);
-    }, 500);
   };
 
-  const handleFolderUpload = () => {
-    // Simulate folder upload
-    handleUpload({ name: 'my-react-project' });
+  const handleFolderUpload = async () => {
+    try {
+      const result = await electronAPI.selectProjectFolder();
+      if (result.success && result.data?.project?.path) {
+        await handleUpload(result.data.project.path);
+      } else if (result.message) {
+        addTerminalOutput(`ℹ️ ${result.message}`);
+      }
+    } catch (error) {
+      console.error('folder upload error:', error);
+      addTerminalOutput(`❌ Folder selection failed: ${error.message}`);
+    }
   };
 
   return (

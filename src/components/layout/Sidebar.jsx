@@ -4,8 +4,7 @@ import {
   FolderOpen, 
   FileText, 
   Package, 
-  Bot, 
-  Settings,
+  Bot,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -22,7 +21,9 @@ const Sidebar = () => {
     sidebarCollapsed, 
     toggleSidebar, 
     activeView, 
-    setActiveView 
+    setActiveView,
+    hasProject,
+    isLoading
   } = useAppStore();
   
   const [sidebarWidth, setSidebarWidth] = useState(320);
@@ -54,11 +55,33 @@ const Sidebar = () => {
     }
   }, [isDragging]);
 
+  const projectLoaded = hasProject();
+
   const tabs = [
-    { id: 'explorer', label: 'Explorer', icon: FolderOpen },
-    { id: 'summary', label: 'Summary', icon: FileText },
-    { id: 'dependencies', label: 'Dependencies', icon: Package },
-    { id: 'actions', label: 'AI Actions', icon: Bot }
+    { 
+      id: 'explorer', 
+      label: 'Explorer', 
+      icon: FolderOpen,
+      disabled: false
+    },
+    { 
+      id: 'summary', 
+      label: 'Summary', 
+      icon: FileText,
+      disabled: !projectLoaded && !isLoading
+    },
+    { 
+      id: 'dependencies', 
+      label: 'Dependencies', 
+      icon: Package,
+      disabled: !projectLoaded && !isLoading
+    },
+    { 
+      id: 'actions', 
+      label: 'AI Actions', 
+      icon: Bot,
+      disabled: !projectLoaded && !isLoading
+    }
   ];
 
   const renderActivePanel = () => {
@@ -94,9 +117,17 @@ const Sidebar = () => {
             className="flex-1"
           >
             <Tabs
-              tabs={tabs}
+              tabs={tabs.map(tab => ({
+                ...tab,
+                className: tab.disabled ? 'opacity-50 cursor-not-allowed' : ''
+              }))}
               activeTab={activeView}
-              onTabChange={setActiveView}
+              onTabChange={(tabId) => {
+                const tab = tabs.find(t => t.id === tabId);
+                if (!tab?.disabled) {
+                  setActiveView(tabId);
+                }
+              }}
               className="border-none"
             />
           </motion.div>
@@ -121,9 +152,14 @@ const Sidebar = () => {
                 variant={activeView === tab.id ? "secondary" : "ghost"}
                 size="sm"
                 icon={tab.icon}
-                onClick={() => setActiveView(tab.id)}
-                className="p-2"
-                title={tab.label}
+                onClick={() => {
+                  if (!tab.disabled) {
+                    setActiveView(tab.id);
+                  }
+                }}
+                className={`p-2 ${tab.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={tab.disabled ? `${tab.label} (No project loaded)` : tab.label}
+                disabled={tab.disabled}
               />
             ))}
           </div>

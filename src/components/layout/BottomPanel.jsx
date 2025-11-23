@@ -131,8 +131,8 @@ const BottomPanel = () => {
                 Welcome to Vincent Terminal. Upload a project to get started.
               </div>
             ) : (
-              terminalOutput.map((output) => (
-                <div key={output.id} className="mb-1 flex gap-2">
+              terminalOutput.map((output, index) => (
+                <div key={output.id || `terminal-${index}`} className="mb-1 flex gap-2">
                   <span className="text-vscode-text-muted text-xs">
                     {output.timestamp}
                   </span>

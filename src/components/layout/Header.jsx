@@ -1,4 +1,5 @@
-import { Upload, Search, Download, Play, Square, Settings, Minus, Maximize2, X } from 'lucide-react';
+import { useState } from 'react';
+import { Upload, Search, Download, Play, Square, Settings, Minus, Maximize2, X, RefreshCw } from 'lucide-react';
 import Button from '../ui/Button';
 import { useAppStore } from '../../store/appStore';
 import electronAPI from '../../utils/electronAPI';
@@ -8,37 +9,94 @@ const Header = () => {
     isProjectRunning, 
     setProjectRunning, 
     setShowUploadModal,
-    addTerminalOutput 
+    addTerminalOutput,
+    project,
+    hasProject,
+    loadProject,
+    setLoading
   } = useAppStore();
+  
+  const [installing, setInstalling] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
-  const handleUpload = async () => {
-    const result = await electronAPI.selectProjectFolder();
-    if (result.success) {
-      addTerminalOutput(`📁 Project loaded: ${result.data.project.path}`);
-    }
+  const handleUpload = () => {
+    setShowUploadModal(true);
   };
 
   const handleDetectTechStack = async () => {
-    const result = await electronAPI.checkSystemDependencies();
-    if (result.success) {
-      addTerminalOutput('✅ System dependencies checked');
+    if (!hasProject()) {
+      addTerminalOutput('⚠️ Please upload a project first');
+      return;
+    }
+    
+    setAnalyzing(true);
+    addTerminalOutput('🔍 Re-analyzing project...');
+    
+    try {
+      const result = await electronAPI.analyzeProject(project.path);
+      if (result.success) {
+        await loadProject(result);
+        addTerminalOutput('✅ Tech stack detection completed');
+      } else {
+        addTerminalOutput(`❌ Analysis failed: ${result.message}`);
+      }
+    } catch (error) {
+      addTerminalOutput(`❌ Error: ${error.message}`);
+    } finally {
+      setAnalyzing(false);
     }
   };
 
   const handleInstallDependencies = async () => {
-    // This will be handled by project path from store
-    addTerminalOutput('📦 Use Upload Project first');
+    if (!hasProject()) {
+      addTerminalOutput('⚠️ Please upload a project first');
+      return;
+    }
+    
+    setInstalling(true);
+    addTerminalOutput('📦 Installing dependencies...');
+    
+    try {
+      const result = await electronAPI.installDependencies(project.path);
+      if (result.success) {
+        addTerminalOutput('✅ Dependencies installed successfully');
+      } else {
+        addTerminalOutput(`❌ Installation failed: ${result.message}`);
+      }
+    } catch (error) {
+      addTerminalOutput(`❌ Installation error: ${error.message}`);
+    } finally {
+      setInstalling(false);
+    }
   };
 
   const handleStartProject = async () => {
+    if (!hasProject()) {
+      addTerminalOutput('⚠️ Please upload a project first');
+      return;
+    }
+    
     if (isProjectRunning) {
+      addTerminalOutput('🛑 Stopping project...');
       const result = await electronAPI.stopProject();
       if (result.success) {
         setProjectRunning(false);
+        addTerminalOutput('✅ Project stopped');
+      } else {
+        addTerminalOutput(`❌ Failed to stop: ${result.message}`);
       }
     } else {
-      // This will be handled by project path from store
-      addTerminalOutput('🚀 Use Upload Project first');
+      addTerminalOutput('🚀 Starting project...');
+      const result = await electronAPI.startProject(project.path);
+      if (result.success) {
+        setProjectRunning(true);
+        addTerminalOutput('✅ Project started successfully');
+        if (result.data?.url) {
+          addTerminalOutput(`🌐 Server running at: ${result.data.url}`);
+        }
+      } else {
+        addTerminalOutput(`❌ Failed to start: ${result.message}`);
+      }
     }
   };
 
@@ -47,7 +105,10 @@ const Header = () => {
       {/* Left side - Logo and title */}
       <div className="flex items-center gap-3 min-w-0">
         <img src="/icon.png" alt="Vincent" className="w-6 h-6" />
-        <h1 className="text-vscode-text font-semibold">Vincent</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-vscode-text font-semibold">Vincent</h1>
+          <span className="px-2 py-0.5 text-xs font-medium bg-orange-500 text-white rounded-full">BETA</span>
+        </div>
       </div>
 
       {/* Center - Action buttons */}
@@ -64,19 +125,23 @@ const Header = () => {
         <Button
           variant="ghost"
           size="sm"
-          icon={Search}
+          icon={analyzing ? RefreshCw : Search}
           onClick={handleDetectTechStack}
+          disabled={analyzing || !hasProject()}
+          className={analyzing ? 'animate-spin' : ''}
         >
-          Detect Tech Stack
+          {analyzing ? 'Analyzing...' : 'Re-analyze'}
         </Button>
         
         <Button
           variant="ghost"
           size="sm"
-          icon={Download}
+          icon={installing ? RefreshCw : Download}
           onClick={handleInstallDependencies}
+          disabled={installing || !hasProject()}
+          className={installing ? 'animate-spin' : ''}
         >
-          Install Dependencies
+          {installing ? 'Installing...' : 'Install Deps'}
         </Button>
         
         <div className="w-px h-6 bg-vscode-border mx-2" />

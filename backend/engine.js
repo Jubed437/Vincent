@@ -1,9 +1,13 @@
 const { ipcMain, dialog } = require('electron');
+const path = require('path');
+const fs = require('fs').promises;
 const fileScanner = require('./modules/fileScanner');
 const techDetector = require('./modules/techDetector');
 const dependencyInstaller = require('./modules/dependencyInstaller');
 const projectRunner = require('./modules/projectRunner');
 const terminalManager = require('./modules/terminalManager');
+const db = require('./db');
+const aiAgentRoutes = require('./ai/ipc/aiAgentRoutes');
 
 class VincentEngine {
   constructor(mainWindow) {
@@ -14,6 +18,27 @@ class VincentEngine {
   }
 
   setupIpcHandlers() {
+    // Setup AI Agent routes
+    aiAgentRoutes.setupRoutes();
+    
+    // File Operations
+    ipcMain.handle('file:read', async (event, { filePath }) => {
+      console.log('main: reading file', filePath);
+      try {
+        // Security check: ensure file path is absolute and exists
+        if (!path.isAbsolute(filePath)) {
+          throw new Error('File path must be absolute');
+        }
+        
+        const content = await fs.readFile(filePath, 'utf8');
+        console.log('main: file read success, length:', content.length);
+        return { success: true, content };
+      } catch (error) {
+        console.error('main: file read error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+    
     // Project Upload
     ipcMain.handle('select-project-folder', async () => {
       const result = await dialog.showOpenDialog(this.mainWindow, {
@@ -26,6 +51,14 @@ class VincentEngine {
       }
       
       return { success: false, message: 'No folder selected' };
+    });
+
+    // Project Scanning
+    ipcMain.handle('scan:project', async (event, projectPath) => {
+      console.log('scan: started', projectPath);
+      const result = fileScanner.scanProject(projectPath);
+      console.log('scan: completed', result.success);
+      return result;
     });
 
     // Project Analysis
@@ -65,6 +98,15 @@ class VincentEngine {
       terminalManager.clear();
       return { success: true };
     });
+
+    // Database
+    ipcMain.handle('get-project-history', async (event, projectId) => {
+      return db.getProjectHistory(projectId);
+    });
+
+    ipcMain.handle('cleanup-database', async () => {
+      return db.cleanup();
+    });
   }
 
   setupTerminalListener() {
@@ -83,12 +125,20 @@ class VincentEngine {
         return scanResult;
       }
 
+      // Save project to database
+      const projectResult = db.saveProjectMetadata(projectPath, {
+        name: path.basename(projectPath),
+        type: 'JavaScript Project',
+        ...scanResult.data
+      });
+
       this.currentProject = {
+        id: projectResult.data?.id,
         path: projectPath,
         ...scanResult.data
       };
 
-      terminalManager.logSuccess('Project loaded successfully');
+      terminalManager.logSuccess('Project loaded and saved to database');
       
       // Auto-analyze the project
       const analysisResult = await this.analyzeProject(projectPath);
@@ -129,6 +179,24 @@ class VincentEngine {
         return techResult;
       }
 
+      // Save scan results to database
+      if (this.currentProject?.id) {
+        db.saveScanResults(this.currentProject.id, {
+          techStack: techResult.data.techStack,
+          fileCount: this.countFiles(scanResult.data.structure),
+          structure: scanResult.data.structure
+        });
+
+        // Save dependencies
+        const allDeps = [
+          ...(techResult.data.dependencies?.production || []),
+          ...(techResult.data.dependencies?.development || [])
+        ];
+        if (allDeps.length > 0) {
+          db.saveDependencyStatus(this.currentProject.id, allDeps);
+        }
+      }
+
       terminalManager.logSuccess(`Detected: ${techResult.data.projectType}`);
       terminalManager.logInfo(`Found ${techResult.data.techStack.length} technologies`);
 
@@ -137,7 +205,8 @@ class VincentEngine {
         message: 'Project analysis completed',
         data: {
           ...scanResult.data,
-          ...techResult.data
+          ...techResult.data,
+          scripts: scanResult.data.packageJson?.scripts || {}
         }
       };
     } catch (error) {
@@ -194,6 +263,18 @@ class VincentEngine {
 
   getCurrentProject() {
     return this.currentProject;
+  }
+
+  countFiles(structure, count = 0) {
+    if (!structure) return count;
+    for (const item of structure) {
+      if (item.type === 'file') {
+        count++;
+      } else if (item.children) {
+        count = this.countFiles(item.children, count);
+      }
+    }
+    return count;
   }
 }
 
