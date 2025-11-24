@@ -1,34 +1,52 @@
-import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/appStore';
 import Header from './Header';
-import Sidebar from './Sidebar';
+import TopBar from './TopBar';
 import BottomPanel from './BottomPanel';
 import FileViewer from '../FileViewer';
 import UploadModal from '../UploadModal';
+import FileExplorer from '../panels/FileExplorer';
+import ProjectSummary from '../panels/ProjectSummary';
+import DependenciesPanel from '../panels/DependenciesPanel';
+import AIActionsPanel from '../panels/AIActionsPanel';
+import EditorsPanel from '../panels/EditorsPanel';
 
 const AppLayout = () => {
-  const { sidebarCollapsed } = useAppStore();
+  const { activeView } = useAppStore();
+
+  const renderActivePanel = () => {
+    switch (activeView) {
+      case 'explorer':
+        return <FileExplorer />;
+      case 'summary':
+        return <ProjectSummary />;
+      case 'dependencies':
+        return <DependenciesPanel />;
+      case 'editors':
+        return <EditorsPanel />;
+      case 'actions':
+        return <AIActionsPanel />;
+      default:
+        return <FileExplorer />;
+    }
+  };
 
   return (
     <div className="h-screen bg-vscode-bg flex flex-col overflow-hidden">
       {/* Header */}
       <Header />
       
+      {/* Top Bar */}
+      <TopBar />
+      
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar />
+        {/* Left Panel - Active View */}
+        <div className="w-80 bg-vscode-sidebar border-r border-vscode-border flex flex-col">
+          {renderActivePanel()}
+        </div>
         
         {/* Main Workspace */}
-        <motion.div
-          initial={false}
-          animate={{ 
-            marginLeft: 0,
-            width: sidebarCollapsed ? 'calc(100% - 48px)' : 'calc(100% - 320px)'
-          }}
-          transition={{ duration: 0.2, ease: "easeInOut" }}
-          className="flex-1 flex flex-col bg-vscode-bg"
-        >
+        <div className="flex-1 flex flex-col bg-vscode-bg">
           {/* Workspace Content */}
           <div className="flex-1 overflow-hidden">
             <FileViewer />
@@ -36,7 +54,7 @@ const AppLayout = () => {
           
           {/* Bottom Panel */}
           <BottomPanel />
-        </motion.div>
+        </div>
       </div>
       
       {/* Modals */}

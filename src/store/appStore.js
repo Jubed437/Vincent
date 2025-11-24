@@ -30,7 +30,6 @@ export const useAppStore = create((set, get) => ({
   npmScripts: [],
   
   // UI State
-  sidebarCollapsed: false,
   activePanel: 'terminal', // 'terminal' | 'logs'
   activeView: 'explorer', // 'explorer' | 'summary' | 'dependencies' | 'actions'
   
@@ -90,7 +89,7 @@ export const useAppStore = create((set, get) => ({
   
   setDependencies: (deps) => set({ dependencies: deps }),
   
-  toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+
   
   setActivePanel: (panel) => set({ activePanel: panel }),
   

@@ -85,9 +85,13 @@ const EditorsPanel = () => {
             <div className="bg-vscode-accent/20 p-2 rounded-lg">
               <Code2 size={16} className="text-vscode-accent" />
             </div>
-            <div>
-              <h3 className="text-vscode-text font-semibold">Code Editors</h3>
-              <p className="text-vscode-text-muted text-xs">Launch project in your favorite editor</p>
+            <div className="min-w-0 overflow-hidden">
+              <h3 className="text-vscode-text font-semibold truncate overflow-hidden text-ellipsis whitespace-nowrap">
+                Code Editors
+              </h3>
+              <p className="text-vscode-text-muted text-xs truncate overflow-hidden text-ellipsis whitespace-nowrap">
+                Launch project in your favorite editor
+              </p>
             </div>
           </div>
           <Button
@@ -117,16 +121,16 @@ const EditorsPanel = () => {
                       <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" fill="#007ACC"/>
                     </svg>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="flex items-center gap-2">
-                      <p className="text-vscode-text text-sm font-semibold group-hover:text-vscode-accent transition-colors">
+                      <p className="text-vscode-text text-sm font-semibold group-hover:text-vscode-accent transition-colors truncate overflow-hidden text-ellipsis max-w-full">
                         Visual Studio Code
                       </p>
-                      <span className="bg-vscode-accent/20 text-vscode-accent text-xs px-2 py-0.5 rounded-full font-medium">
+                      <span className="bg-vscode-accent/20 text-vscode-accent text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
                         Popular
                       </span>
                     </div>
-                    <p className="text-vscode-text-muted text-xs mt-1">
+                    <p className="text-vscode-text-muted text-xs mt-1 truncate overflow-hidden text-ellipsis max-w-full">
                       Click to open project in VS Code
                     </p>
                   </div>

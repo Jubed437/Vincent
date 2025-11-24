@@ -35,20 +35,7 @@ function createWindow() {
   });
   ipcMain.on('close-window', () => mainWindow.close());
   
-  // Fallback editor handler
-  ipcMain.handle('open-editor', async (event, editorPath, projectPath) => {
-    const { exec } = require('child_process');
-    try {
-      if (editorPath === 'code') {
-        exec(`code "${projectPath}"`);
-        return { success: true, message: 'Opening VS Code...' };
-      }
-      exec(`"${editorPath}" "${projectPath}"`);
-      return { success: true, message: 'Opening editor...' };
-    } catch (error) {
-      return { success: false, message: error.message };
-    }
-  });
+
 
   // Show window when ready to prevent white/black screen
   mainWindow.once('ready-to-show', () => {

@@ -64,10 +64,10 @@ const FileItem = ({ file, level = 0, onSelect }) => {
           className={isFolder ? 'text-blue-400' : 'text-vscode-text-muted'} 
         />
         
-        <span className="text-vscode-text flex-1">{file.name}</span>
+        <span className="text-vscode-text flex-1 truncate overflow-hidden text-ellipsis max-w-full">{file.name}</span>
         
         {file.size && (
-          <span className="text-vscode-text-muted text-xs">{file.size}</span>
+          <span className="text-vscode-text-muted text-xs truncate overflow-hidden">{file.size}</span>
         )}
       </motion.div>
 
@@ -102,7 +102,9 @@ const FileExplorer = () => {
   return (
     <div className="h-full overflow-y-auto scrollbar-thin">
       <div className="p-3">
-        <h3 className="text-vscode-text font-medium mb-3">Project Files</h3>
+        <h3 className="text-vscode-text font-medium mb-3 truncate overflow-hidden text-ellipsis whitespace-nowrap">
+          Project Files
+        </h3>
         
         {projectFiles.length === 0 ? (
           <div className="text-vscode-text-muted text-sm">

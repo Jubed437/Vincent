@@ -98,4 +98,72 @@
     box-shadow: 0 4px 12px rgba(0, 122, 204, 0.15);
     transform: translateY(-1px);
   }
+  
+  /* Sidebar resize handle */
+  .resize-handle {
+    position: relative;
+    transition: background-color 0.2s ease;
+  }
+  
+  .resize-handle:hover {
+    background-color: #007acc !important;
+  }
+  
+  .resize-handle:active {
+    background-color: #0e639c !important;
+  }
+  
+  /* Resize handle visual indicator */
+  .resize-handle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 20px;
+    background-color: #424242;
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  
+  .resize-handle:hover::after {
+    opacity: 1;
+    background-color: #ffffff;
+  }
+  
+  /* Horizontal resize handle */
+  .resize-handle-horizontal {
+    position: relative;
+    transition: background-color 0.2s ease;
+  }
+  
+  .resize-handle-horizontal:hover {
+    background-color: #007acc !important;
+  }
+  
+  .resize-handle-horizontal:active {
+    background-color: #0e639c !important;
+  }
+  
+  /* Horizontal resize handle visual indicator */
+  .resize-handle-horizontal::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 2px;
+    background-color: #424242;
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  
+  .resize-handle-horizontal:hover::after {
+    opacity: 1;
+    background-color: #ffffff;
+  }
 }

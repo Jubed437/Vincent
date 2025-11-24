@@ -157,7 +157,9 @@ const AIActionsPanel = () => {
 
   return (
     <div className="h-full overflow-y-auto scrollbar-thin p-3 space-y-4">
-      <h3 className="text-vscode-text font-medium">AI Actions</h3>
+      <h3 className="text-vscode-text font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
+        AI Actions
+      </h3>
 
       {/* AI Workflow Progress */}
       <Card>

@@ -94,7 +94,9 @@ const ProjectSummary = () => {
 
   return (
     <div className="h-full overflow-y-auto scrollbar-thin p-3 space-y-4">
-      <h3 className="text-vscode-text font-medium">Project Summary</h3>
+      <h3 className="text-vscode-text font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
+        Project Summary
+      </h3>
 
       {/* Project Stats */}
       <Card>
@@ -147,11 +149,11 @@ const ProjectSummary = () => {
                   className="flex items-center gap-3 p-2 rounded bg-vscode-hover"
                 >
                   <Icon size={16} className="text-vscode-accent" />
-                  <div className="flex-1">
-                    <div className="text-vscode-text text-sm font-medium">
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <div className="text-vscode-text text-sm font-medium truncate overflow-hidden text-ellipsis max-w-full">
                       {tech.name}
                     </div>
-                    <div className="text-vscode-text-muted text-xs">
+                    <div className="text-vscode-text-muted text-xs truncate overflow-hidden text-ellipsis max-w-full">
                       v{tech.version} • {tech.type}
                     </div>
                   </div>
@@ -175,11 +177,11 @@ const ProjectSummary = () => {
                 transition={{ delay: index * 0.05 }}
                 className="flex items-center gap-3 p-2 rounded bg-vscode-hover"
               >
-                <div className="flex-1">
-                  <div className="text-vscode-text text-sm font-medium">
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="text-vscode-text text-sm font-medium truncate overflow-hidden text-ellipsis max-w-full">
                     {script.name}
                   </div>
-                  <div className="text-vscode-text-muted text-xs font-mono">
+                  <div className="text-vscode-text-muted text-xs font-mono truncate overflow-hidden text-ellipsis max-w-full">
                     {script.command}
                   </div>
                 </div>
@@ -224,7 +226,7 @@ const ProjectSummary = () => {
                   size={16} 
                   className={statusColors[step.status]} 
                 />
-                <span className="text-vscode-text text-sm flex-1">
+                <span className="text-vscode-text text-sm flex-1 truncate overflow-hidden text-ellipsis max-w-full">
                   {step.name}
                 </span>
                 <span className={`text-xs capitalize ${statusColors[step.status]}`}>

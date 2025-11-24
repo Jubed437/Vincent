@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   FolderOpen, 
   FileText, 
   Package, 
   Bot,
-  Code2,
-  ChevronLeft,
-  ChevronRight
+  Code2
 } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
-import Button from '../ui/Button';
-import Tabs from '../ui/Tabs';
+import { useUIStore } from '../../store/uiStore';
+import SidebarItem from '../ui/SidebarItem';
 import FileExplorer from '../panels/FileExplorer';
 import ProjectSummary from '../panels/ProjectSummary';
 import DependenciesPanel from '../panels/DependenciesPanel';
@@ -19,33 +17,32 @@ import AIActionsPanel from '../panels/AIActionsPanel';
 import EditorsPanel from '../panels/EditorsPanel';
 
 const Sidebar = () => {
-  const { 
-    sidebarCollapsed, 
-    toggleSidebar, 
-    activeView, 
-    setActiveView,
-    project
-  } = useAppStore();
+  const { activeView, setActiveView, project } = useAppStore();
+  const { sidebarWidth, setSidebarWidth, isIconOnlyMode } = useUIStore();
   
-  const [sidebarWidth, setSidebarWidth] = useState(320);
   const [isDragging, setIsDragging] = useState(false);
+  const iconOnly = isIconOnlyMode();
 
-  const handleMouseDown = (e) => {
+  // Handle resize dragging
+  const handleMouseDown = useCallback((e) => {
     setIsDragging(true);
     e.preventDefault();
-  };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!isDragging) return;
-    const newWidth = Math.max(200, Math.min(600, e.clientX));
-    setSidebarWidth(newWidth);
-  };
+    setSidebarWidth(e.clientX);
+  }, [isDragging, setSidebarWidth]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-  };
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
@@ -54,11 +51,11 @@ const Sidebar = () => {
         document.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   const projectLoaded = !!project;
 
-  const tabs = [
+  const sidebarItems = [
     { 
       id: 'explorer', 
       label: 'Explorer', 
@@ -111,86 +108,63 @@ const Sidebar = () => {
   return (
     <div className="relative flex">
       <motion.div
-        initial={false}
-        animate={{ width: sidebarCollapsed ? 48 : sidebarWidth }}
-        transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="bg-vscode-sidebar border-r border-vscode-border flex flex-col h-full"
+        style={{ width: sidebarWidth }}
+        className="bg-vscode-sidebar border-r border-vscode-border flex flex-col h-full transition-all duration-200 ease-in-out"
       >
-      {/* Sidebar Header */}
-      <div className="h-12 flex items-center justify-between px-3 border-b border-vscode-border">
-        {!sidebarCollapsed && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1"
-          >
-            <Tabs
-              tabs={tabs.map(tab => ({
-                ...tab,
-                className: tab.disabled ? 'opacity-50 cursor-not-allowed' : ''
-              }))}
-              activeTab={activeView}
-              onTabChange={(tabId) => {
-                const tab = tabs.find(t => t.id === tabId);
-                if (!tab?.disabled) {
-                  setActiveView(tabId);
-                }
-              }}
-              className="border-none"
-            />
-          </motion.div>
-        )}
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={sidebarCollapsed ? ChevronRight : ChevronLeft}
-          onClick={toggleSidebar}
-          className="p-1"
-        />
-      </div>
+        {/* Sidebar Navigation */}
+        <div className={`${iconOnly ? 'p-2' : 'p-3'} border-b border-vscode-border`}>
+          {iconOnly ? (
+            <div className="flex flex-col gap-1">
+              {sidebarItems.map((item) => (
+                <SidebarItem
+                  key={item.id}
+                  {...item}
+                  isActive={activeView === item.id}
+                  onClick={() => {
+                    if (!item.disabled) {
+                      setActiveView(item.id);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-vscode-text font-medium mb-2 text-sm truncate overflow-hidden text-ellipsis whitespace-nowrap">
+                Vincent Explorer
+              </h3>
+              <div className="space-y-1">
+                {sidebarItems.map((item) => (
+                  <SidebarItem
+                    key={item.id}
+                    {...item}
+                    isActive={activeView === item.id}
+                    onClick={() => {
+                      if (!item.disabled) {
+                        setActiveView(item.id);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
-      {/* Sidebar Content */}
-      <div className="flex-1 overflow-hidden">
-        {sidebarCollapsed ? (
-          <div className="flex flex-col items-center py-4 gap-2">
-            {tabs.map((tab) => (
-              <Button
-                key={tab.id}
-                variant={activeView === tab.id ? "secondary" : "ghost"}
-                size="sm"
-                icon={tab.icon}
-                onClick={() => {
-                  if (!tab.disabled) {
-                    setActiveView(tab.id);
-                  }
-                }}
-                className={`p-2 ${tab.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={tab.disabled ? `${tab.label} (No project loaded)` : tab.label}
-                disabled={tab.disabled}
-              />
-            ))}
-          </div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="h-full"
-          >
-            {renderActivePanel()}
-          </motion.div>
-        )}
-      </div>
+        {/* Sidebar Content */}
+        <div className="flex-1 overflow-hidden">
+          {renderActivePanel()}
+        </div>
       </motion.div>
       
-      {!sidebarCollapsed && (
-        <div
-          className="w-1 bg-transparent hover:bg-vscode-accent cursor-col-resize transition-colors"
-          onMouseDown={handleMouseDown}
-        />
-      )}
+      {/* Resize Handle */}
+      <div
+        className="resize-handle w-1 bg-transparent hover:bg-vscode-accent cursor-col-resize transition-colors flex-shrink-0"
+        onMouseDown={handleMouseDown}
+        style={{
+          backgroundColor: isDragging ? '#007acc' : 'transparent'
+        }}
+      />
     </div>
   );
 };

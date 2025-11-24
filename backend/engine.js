@@ -118,11 +118,6 @@ class VincentEngine {
       return terminalManager.resizeTerminal(terminalId, cols, rows);
     });
 
-    // Add missing resize terminal method to electronAPI
-    ipcMain.handle('resize-terminal', async (event, terminalId, cols, rows) => {
-      return terminalManager.resizeTerminal(terminalId, cols, rows);
-    });
-
     // AI Analysis
     ipcMain.handle('ai-analyze-structure', async (event, projectPath) => {
       return await aiAnalyzer.analyzeProjectStructure(projectPath);

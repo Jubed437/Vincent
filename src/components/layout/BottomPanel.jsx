@@ -257,7 +257,7 @@ const BottomPanel = () => {
           
           {/* Current prompt line */}
           <div className="flex items-center">
-            <span className="text-blue-400 font-bold">PS {project?.path || 'C:\\'}></span>
+            <span className="text-blue-400 font-bold">PS {project?.path || 'C:\\'}&gt;</span>
             <input
               ref={inputRef}
               type="text"

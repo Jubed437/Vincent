@@ -96,11 +96,11 @@ const DependenciesPanel = () => {
                   className={getStatusColor(dep.status)} 
                 />
                 
-                <div className="flex-1 min-w-0">
-                  <div className="text-vscode-text text-sm font-medium truncate">
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="text-vscode-text text-sm font-medium truncate overflow-hidden text-ellipsis max-w-full">
                     {dep.name}
                   </div>
-                  <div className="text-vscode-text-muted text-xs">
+                  <div className="text-vscode-text-muted text-xs truncate overflow-hidden text-ellipsis max-w-full">
                     v{dep.version} • {dep.status}
                   </div>
                 </div>
@@ -138,7 +138,9 @@ const DependenciesPanel = () => {
   return (
     <div className="h-full overflow-y-auto scrollbar-thin p-3 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-vscode-text font-medium">Dependencies</h3>
+        <h3 className="text-vscode-text font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
+          Dependencies
+        </h3>
         <Button
           variant="primary"
           size="sm"
