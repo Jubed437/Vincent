@@ -26,6 +26,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getTerminalHistory: () => ipcRenderer.invoke('get-terminal-history'),
   getProjectStatus: () => ipcRenderer.invoke('get-project-status'),
   
+  // Editor operations
+  detectEditors: () => ipcRenderer.invoke('detect-editors'),
+  getEditors: () => ipcRenderer.invoke('get-editors'),
+  openEditor: (editorPath, projectPath) => ipcRenderer.invoke('open-editor', editorPath, projectPath),
+  
   // Event listeners
   onTerminalData: (callback) => {
     ipcRenderer.on('terminal-data', (event, data) => callback(data));

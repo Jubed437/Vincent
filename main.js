@@ -20,13 +20,12 @@ function createWindow() {
     show: false // Don't show until ready
   });
 
-  // Initialize Vincent Engine (minimal version for testing)
+  // Initialize Vincent Engine
   try {
     vincentEngine = new VincentEngine(mainWindow);
     console.log('Vincent Engine initialized successfully');
   } catch (error) {
     console.error('Failed to initialize Vincent Engine:', error);
-    // Continue without engine for now
   }
   
   // IPC handlers for window controls
@@ -35,6 +34,21 @@ function createWindow() {
     mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
   });
   ipcMain.on('close-window', () => mainWindow.close());
+  
+  // Fallback editor handler
+  ipcMain.handle('open-editor', async (event, editorPath, projectPath) => {
+    const { exec } = require('child_process');
+    try {
+      if (editorPath === 'code') {
+        exec(`code "${projectPath}"`);
+        return { success: true, message: 'Opening VS Code...' };
+      }
+      exec(`"${editorPath}" "${projectPath}"`);
+      return { success: true, message: 'Opening editor...' };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  });
 
   // Show window when ready to prevent white/black screen
   mainWindow.once('ready-to-show', () => {

@@ -2,7 +2,7 @@
 1 info using npm@11.6.1
 2 info using node@v24.11.0
 3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
-4 silly config load:file:D:\Vincent\.npmrc
+4 silly config load:file:d:\Vincent\.npmrc
 5 warn Unknown project config "target_platform". This will stop working in the next major version of npm.
 6 warn Unknown project config "target_arch". This will stop working in the next major version of npm.
 7 warn Unknown project config "runtime". This will stop working in the next major version of npm.
@@ -12,7 +12,13 @@
 11 silly config load:file:C:\Users\zubai\AppData\Roaming\npm\etc\npmrc
 12 verbose title npm start
 13 verbose argv "start"
-14 verbose logfile logs-max:10 dir:D:\Vincent\.npm\_logs\2025-11-24T05_17_23_143Z-
-15 verbose logfile D:\Vincent\.npm\_logs\2025-11-24T05_17_23_143Z-debug-0.log
+14 verbose logfile logs-max:10 dir:d:\Vincent\.npm\_logs\2025-11-24T05_51_51_653Z-
+15 verbose logfile d:\Vincent\.npm\_logs\2025-11-24T05_51_51_653Z-debug-0.log
 16 silly logfile start cleaning logs, removing 1 files
 17 silly logfile done cleaning log files
+18 verbose cwd d:\Vincent
+19 verbose os Windows_NT 10.0.26200
+20 verbose node v24.11.0
+21 verbose npm  v11.6.1
+22 verbose exit 0
+23 info ok

@@ -7,7 +7,7 @@
 6 warn Unknown env config "target". This will stop working in the next major version of npm.
 7 warn Unknown env config "target-arch". This will stop working in the next major version of npm.
 8 warn Unknown env config "target-platform". This will stop working in the next major version of npm.
-9 silly config load:file:d:\Vincent\.npmrc
+9 silly config load:file:D:\Vincent\.npmrc
 10 warn Unknown project config "target_platform". This will stop working in the next major version of npm.
 11 warn Unknown project config "target_arch". This will stop working in the next major version of npm.
 12 warn Unknown project config "runtime". This will stop working in the next major version of npm.
@@ -17,7 +17,7 @@
 16 silly config load:file:C:\Users\zubai\AppData\Roaming\npm\etc\npmrc
 17 verbose title npm run dev
 18 verbose argv "run" "dev"
-19 verbose logfile logs-max:10 dir:d:\Vincent\.npm\_logs\2025-11-24T05_13_10_677Z-
-20 verbose logfile d:\Vincent\.npm\_logs\2025-11-24T05_13_10_677Z-debug-0.log
+19 verbose logfile logs-max:10 dir:D:\Vincent\.npm\_logs\2025-11-24T05_52_46_649Z-
+20 verbose logfile D:\Vincent\.npm\_logs\2025-11-24T05_52_46_649Z-debug-0.log
 21 silly logfile start cleaning logs, removing 1 files
 22 silly logfile done cleaning log files

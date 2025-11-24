@@ -101,6 +101,34 @@ class ElectronAPI {
     }
   }
 
+  // Editor Management
+  async detectEditors() {
+    try {
+      return await window.electronAPI.detectEditors();
+    } catch (error) {
+      console.error('Error detecting editors:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  async getEditors() {
+    try {
+      return await window.electronAPI.getEditors();
+    } catch (error) {
+      console.error('Error getting editors:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  async openEditor(editorPath, projectPath) {
+    try {
+      return await window.electronAPI.openEditor(editorPath, projectPath);
+    } catch (error) {
+      console.error('Error opening editor:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
   // Event listeners
   onTerminalData(callback) {
     window.electronAPI.onTerminalData(callback);

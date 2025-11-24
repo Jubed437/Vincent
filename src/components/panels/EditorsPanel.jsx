@@ -4,6 +4,7 @@ import { Code2, ExternalLink, RefreshCw, Zap } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
+import electronAPI from '../../utils/electronAPI';
 
 const EditorsPanel = () => {
   const { editors, setEditors, project } = useAppStore();
@@ -21,9 +22,11 @@ const EditorsPanel = () => {
   const loadEditors = async () => {
     try {
       console.log('Loading editors...');
-      const detectedEditors = await window.api.getEditors();
-      console.log('Detected editors:', detectedEditors);
-      setEditors(detectedEditors);
+      const result = await electronAPI.detectEditors();
+      if (result.success) {
+        console.log('Detected editors:', result.data);
+        setEditors(result.data);
+      }
     } catch (error) {
       console.error('Failed to load editors:', error);
     }
@@ -38,15 +41,34 @@ const EditorsPanel = () => {
     try {
       console.log('Opening editor:', editor.name, 'at path:', editor.path);
       console.log('Project path:', project.path);
-      const result = await window.api.openEditor(editor.path, project.path);
+      const result = await electronAPI.openEditor(editor.path, project.path);
       console.log('Open editor result:', result);
       if (!result.success) {
-        console.error('Failed to open editor:', result.error);
+        console.error('Failed to open editor:', result.message);
       } else {
         console.log('Editor opened successfully');
       }
     } catch (error) {
       console.error('Error opening editor:', error);
+    }
+  };
+
+  const openVSCode = async () => {
+    if (!project?.path) return;
+    
+    const vscodeEditor = editors.find(e => e.name.includes('Visual Studio Code'));
+    if (vscodeEditor) {
+      await openEditor(vscodeEditor);
+    } else {
+      // Try to open with 'code' command
+      try {
+        const result = await electronAPI.openEditor('code', project.path);
+        if (!result.success) {
+          console.error('VS Code not found');
+        }
+      } catch (error) {
+        console.error('Error opening VS Code:', error);
+      }
     }
   };
 
@@ -81,69 +103,49 @@ const EditorsPanel = () => {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
-        {editors.length === 0 ? (
-          <Card className="p-8 text-center border-dashed border-2 border-vscode-border">
-            <div className="bg-vscode-panel rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <Code2 size={24} className="text-vscode-text-muted" />
-            </div>
-            <p className="text-vscode-text text-sm font-medium mb-2">No editors detected</p>
-            <p className="text-vscode-text-muted text-xs leading-relaxed">
-              Install VS Code, WebStorm, or other supported editors<br/>
-              and click refresh to detect them
-            </p>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-4">
-              <Zap size={14} className="text-vscode-accent" />
-              <span className="text-vscode-text-muted text-xs font-medium">
-                {editors.length} editor{editors.length !== 1 ? 's' : ''} detected
-              </span>
-            </div>
-            {editors.map((editor, index) => (
-              <motion.div
-                key={editor.name}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1, type: "spring", stiffness: 100 }}
-              >
-                <Card className="p-4 hover:bg-vscode-panel-hover hover:border-vscode-accent/30 transition-all duration-200 group cursor-pointer border border-vscode-border hover:shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="text-2xl">{getEditorIcon(editor.name)}</div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-vscode-text text-sm font-semibold group-hover:text-vscode-accent transition-colors">
-                            {editor.name}
-                          </p>
-                          {editor.name.toLowerCase().includes('vs code') && (
-                            <span className="bg-vscode-accent/20 text-vscode-accent text-xs px-2 py-0.5 rounded-full font-medium">
-                              Popular
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-vscode-text-muted text-xs mt-1 font-mono truncate max-w-[220px]">
-                          {editor.path.split('\\').pop()}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant={project?.path ? "primary" : "secondary"}
-                      size="sm"
-                      icon={ExternalLink}
-                      onClick={() => openEditor(editor)}
-                      disabled={!project?.path}
-                      className="text-xs font-medium px-4 group-hover:scale-105 transition-transform"
-                      title={!project?.path ? 'Load a project first' : `Open in ${editor.name}`}
-                    >
-                      {project?.path ? 'Open' : 'Load Project'}
-                    </Button>
+        <div className="space-y-3">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: "spring", stiffness: 100 }}
+          >
+            <Card className="p-4 hover:bg-vscode-panel-hover hover:border-vscode-accent/30 transition-all duration-200 group cursor-pointer border border-vscode-border hover:shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" fill="#007ACC"/>
+                    </svg>
                   </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-vscode-text text-sm font-semibold group-hover:text-vscode-accent transition-colors">
+                        Visual Studio Code
+                      </p>
+                      <span className="bg-vscode-accent/20 text-vscode-accent text-xs px-2 py-0.5 rounded-full font-medium">
+                        Popular
+                      </span>
+                    </div>
+                    <p className="text-vscode-text-muted text-xs mt-1">
+                      Click to open project in VS Code
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant={project?.path ? "primary" : "secondary"}
+                  size="sm"
+                  icon={ExternalLink}
+                  onClick={openVSCode}
+                  disabled={!project?.path}
+                  className="text-xs font-medium px-4 group-hover:scale-105 transition-transform"
+                  title={!project?.path ? 'Load a project first' : 'Open in VS Code'}
+                >
+                  {project?.path ? 'Open' : 'Load Project'}
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
       </div>
     </div>
   );

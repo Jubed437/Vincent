@@ -40,6 +40,9 @@ export const useAppStore = create((set, get) => ({
   commandHistory: loadCommandHistory(),
   historyIndex: -1,
   
+  // Editor State
+  editors: [],
+  
   // Modal State
   showUploadModal: false,
   
@@ -178,6 +181,9 @@ export const useAppStore = create((set, get) => ({
       script.name === scriptName ? { ...script, running } : script
     )
   })),
+  
+  // Editor actions
+  setEditors: (editors) => set({ editors }),
   
   // Clear all data
   clearProject: () => set({

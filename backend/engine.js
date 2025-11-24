@@ -5,6 +5,7 @@ const dependencyInstaller = require('./modules/dependencyInstaller');
 const projectRunner = require('./modules/projectRunner');
 const terminalManager = require('./modules/terminalManager');
 const aiAnalyzer = require('./modules/aiAnalyzer');
+const editorManager = require('./modules/editorManager');
 
 class VincentEngine {
   constructor(mainWindow) {
@@ -137,6 +138,19 @@ class VincentEngine {
 
     ipcMain.handle('ai-security-audit', async (event, projectPath) => {
       return await aiAnalyzer.securityAudit(projectPath);
+    });
+
+    // Editor Management
+    ipcMain.handle('detect-editors', async () => {
+      return await editorManager.detectEditors();
+    });
+
+    ipcMain.handle('get-editors', async () => {
+      return editorManager.getEditors();
+    });
+
+    ipcMain.handle('open-editor', async (event, editorPath, projectPath) => {
+      return await editorManager.openEditor(editorPath, projectPath);
     });
   }
 

@@ -17,7 +17,7 @@
 16 silly config load:file:C:\Users\zubai\AppData\Roaming\npm\etc\npmrc
 17 verbose title npm run dev
 18 verbose argv "run" "dev"
-19 verbose logfile logs-max:10 dir:D:\Vincent\.npm\_logs\2025-11-24T05_17_23_876Z-
-20 verbose logfile D:\Vincent\.npm\_logs\2025-11-24T05_17_23_876Z-debug-0.log
+19 verbose logfile logs-max:10 dir:D:\Vincent\.npm\_logs\2025-11-24T05_46_49_948Z-
+20 verbose logfile D:\Vincent\.npm\_logs\2025-11-24T05_46_49_948Z-debug-0.log
 21 silly logfile start cleaning logs, removing 1 files
 22 silly logfile done cleaning log files
