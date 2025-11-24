@@ -8,7 +8,7 @@ class ProjectRunner {
     this.projectPath = null;
   }
 
-  async startProject(projectPath, onOutput) {
+  async startProject(projectPath, onOutput, projectId = null) {
     return new Promise((resolve) => {
       try {
         const packageJson = this.readPackageJson(projectPath);
@@ -35,6 +35,19 @@ class ProjectRunner {
           shell: true,
           stdio: ['pipe', 'pipe', 'pipe']
         });
+
+        // Save run log to database
+        let runId = null;
+        if (projectId) {
+          const db = require('../db');
+          const runResult = db.saveRunLog(projectId, {
+            command: `npm run ${script.name}`,
+            status: 'starting',
+            output: '',
+            pid: this.activeProcess.pid
+          });
+          runId = runResult.data?.id;
+        }
 
         let hasStarted = false;
 
@@ -66,6 +79,13 @@ class ProjectRunner {
         this.activeProcess.on('close', (code) => {
           this.activeProcess = null;
           onOutput?.(`🛑 Project stopped with code ${code}`);
+          
+          // Update run status in database
+          if (runId && projectId) {
+            const db = require('../db');
+            db.updateRunStatus(runId, code === 0 ? 'stopped' : 'failed', `Exit code: ${code}`);
+          }
+          
           if (!hasStarted) {
             resolve({
               success: false,

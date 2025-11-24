@@ -49,4 +49,53 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: #4f4f4f;
   }
+
+  /* Code syntax highlighting */
+  .code-viewer {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .code-viewer .text-keyword { color: #569cd6; }
+  .code-viewer .text-string { color: #ce9178; }
+  .code-viewer .text-comment { color: #6a9955; font-style: italic; }
+  .code-viewer .text-number { color: #b5cea8; }
+  .code-viewer .text-operator { color: #d4d4d4; }
+  .code-viewer .text-function { color: #dcdcaa; }
+  .code-viewer .text-property { color: #9cdcfe; }
+  .code-viewer .text-bracket { color: #ffd700; }
+  .code-viewer .text-tag { color: #569cd6; }
+  .code-viewer .text-attribute { color: #92c5f8; }
+  .code-viewer .text-value { color: #ce9178; }
+  
+  /* Line number styling */
+  .line-numbers {
+    user-select: none;
+    color: #858585;
+    background-color: #1e1e1e;
+    border-right: 1px solid #3e3e42;
+    min-width: 50px;
+    text-align: right;
+    padding-right: 12px;
+    padding-left: 8px;
+  }
+  
+  /* Panel hover effects */
+  .bg-vscode-panel-hover {
+    background-color: #2a2d2e;
+  }
+  
+  /* Enhanced editor panel styling */
+  .editor-card {
+    background: linear-gradient(135deg, #252526 0%, #2d2d30 100%);
+    border: 1px solid #3e3e42;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .editor-card:hover {
+    border-color: #007acc;
+    box-shadow: 0 4px 12px rgba(0, 122, 204, 0.15);
+    transform: translateY(-1px);
+  }
 }

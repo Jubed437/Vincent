@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AppLayout from './components/layout/AppLayout';
+import AppInitializer from './components/AppInitializer';
 import './styles/index.css';
 
 function App() {
@@ -54,7 +55,9 @@ function App() {
 
   return (
     <div className="App">
-      <AppLayout />
+      <AppInitializer>
+        <AppLayout />
+      </AppInitializer>
     </div>
   );
 }
