@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('dotenv').config({ path: '.env.local' }); // Load local overrides
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const VincentEngine = require('./backend/engine');
