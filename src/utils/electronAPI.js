@@ -83,9 +83,31 @@ class ElectronAPI {
     }
   }
 
+  async getTerminalHistory() {
+    try {
+      return await window.electronAPI.getTerminalHistory();
+    } catch (error) {
+      console.error('Error getting terminal history:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  async getProjectStatus() {
+    try {
+      return await window.electronAPI.getProjectStatus();
+    } catch (error) {
+      console.error('Error getting project status:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
   // Event listeners
   onTerminalData(callback) {
     window.electronAPI.onTerminalData(callback);
+  }
+
+  onTerminalOutput(callback) {
+    return window.electronAPI.onTerminalOutput(callback);
   }
 
   onProjectLoaded(callback) {

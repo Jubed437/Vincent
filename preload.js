@@ -23,10 +23,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createTerminal: () => ipcRenderer.invoke('create-terminal'),
   terminalInput: (input) => ipcRenderer.invoke('terminal-input', input),
   killTerminal: () => ipcRenderer.invoke('kill-terminal'),
+  getTerminalHistory: () => ipcRenderer.invoke('get-terminal-history'),
+  getProjectStatus: () => ipcRenderer.invoke('get-project-status'),
   
   // Event listeners
   onTerminalData: (callback) => {
     ipcRenderer.on('terminal-data', (event, data) => callback(data));
+  },
+  onTerminalOutput: (callback) => {
+    ipcRenderer.on('terminal-output', (event, data) => callback(data));
+    return () => ipcRenderer.removeAllListeners('terminal-output');
   },
   onProjectLoaded: (callback) => {
     ipcRenderer.on('project-loaded', (event, data) => callback(data));

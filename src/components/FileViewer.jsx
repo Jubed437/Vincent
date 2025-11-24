@@ -27,6 +27,9 @@ const FileViewer = () => {
       setIsBinary(false);
 
       try {
+        if (!electronAPI || !electronAPI.readFileContent) {
+          throw new Error('File reading API not available');
+        }
         const result = await electronAPI.readFileContent(selectedFile.path);
         
         if (result.success) {

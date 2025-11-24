@@ -15,7 +15,8 @@ const UploadModal = () => {
   const { 
     showUploadModal, 
     setShowUploadModal,
-    loadProject
+    loadProject,
+    addTerminalOutput
   } = useAppStore();
 
   const handleDrag = (e) => {

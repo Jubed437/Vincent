@@ -68,6 +68,7 @@ const Header = () => {
       } else {
         if (!project?.path) {
           console.error('No project loaded');
+          alert('Please load a project first');
           return;
         }
         

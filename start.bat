@@ -1,6 +1,8 @@
 @echo off
-echo Starting Vincent...
-set NODE_ENV=development
-start /B npm run dev
-timeout /t 5 /nobreak >nul
-electron .
+echo Starting Vincent AI Project Analyzer...
+echo.
+echo Installing dependencies...
+call npm install
+echo.
+echo Starting development server...
+call npm start

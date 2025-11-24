@@ -1,0 +1,23 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.6.1
+2 info using node@v24.11.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 warn Unknown env config "dist-url". This will stop working in the next major version of npm.
+5 warn Unknown env config "runtime". This will stop working in the next major version of npm.
+6 warn Unknown env config "target". This will stop working in the next major version of npm.
+7 warn Unknown env config "target-arch". This will stop working in the next major version of npm.
+8 warn Unknown env config "target-platform". This will stop working in the next major version of npm.
+9 silly config load:file:d:\Vincent\.npmrc
+10 warn Unknown project config "target_platform". This will stop working in the next major version of npm.
+11 warn Unknown project config "target_arch". This will stop working in the next major version of npm.
+12 warn Unknown project config "runtime". This will stop working in the next major version of npm.
+13 warn Unknown project config "target". This will stop working in the next major version of npm.
+14 warn Unknown project config "dist_url". This will stop working in the next major version of npm.
+15 silly config load:file:C:\Users\zubai\.npmrc
+16 silly config load:file:C:\Users\zubai\AppData\Roaming\npm\etc\npmrc
+17 verbose title npm run dev
+18 verbose argv "run" "dev"
+19 verbose logfile logs-max:10 dir:d:\Vincent\.npm\_logs\2025-11-24T05_13_10_677Z-
+20 verbose logfile d:\Vincent\.npm\_logs\2025-11-24T05_13_10_677Z-debug-0.log
+21 silly logfile start cleaning logs, removing 1 files
+22 silly logfile done cleaning log files

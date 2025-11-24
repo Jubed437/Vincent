@@ -94,8 +94,15 @@ const BottomPanel = () => {
       return;
     }
 
+    // Basic command sanitization
+    const sanitizedCommand = command.trim();
+    if (sanitizedCommand.includes('&&') || sanitizedCommand.includes('||') || sanitizedCommand.includes(';')) {
+      addOutput('Command contains potentially unsafe operators', 'error');
+      return;
+    }
+
     try {
-      const result = await electronAPI.terminalInput(command);
+      const result = await electronAPI.terminalInput(sanitizedCommand);
       if (result.success) {
         if (result.output) {
           addOutput(result.output, 'output');
@@ -178,7 +185,9 @@ const BottomPanel = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setOutput([])}
+              onClick={() => setTerminals(prev => prev.map(t => 
+                t.id === activeTerminal ? { ...t, output: [] } : t
+              ))}
               className="p-1 text-xs"
             >
               Clear

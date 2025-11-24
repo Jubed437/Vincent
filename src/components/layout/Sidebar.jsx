@@ -24,8 +24,7 @@ const Sidebar = () => {
     toggleSidebar, 
     activeView, 
     setActiveView,
-    hasProject,
-    isLoading
+    project
   } = useAppStore();
   
   const [sidebarWidth, setSidebarWidth] = useState(320);
@@ -57,7 +56,7 @@ const Sidebar = () => {
     }
   }, [isDragging]);
 
-  const projectLoaded = hasProject();
+  const projectLoaded = !!project;
 
   const tabs = [
     { 
@@ -70,13 +69,13 @@ const Sidebar = () => {
       id: 'summary', 
       label: 'Summary', 
       icon: FileText,
-      disabled: !projectLoaded && !isLoading
+      disabled: !projectLoaded
     },
     { 
       id: 'dependencies', 
       label: 'Dependencies', 
       icon: Package,
-      disabled: !projectLoaded && !isLoading
+      disabled: !projectLoaded
     },
     { 
       id: 'editors', 
@@ -88,7 +87,7 @@ const Sidebar = () => {
       id: 'actions', 
       label: 'AI Actions', 
       icon: Bot,
-      disabled: !projectLoaded && !isLoading
+      disabled: !projectLoaded
     }
   ];
 
