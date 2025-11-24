@@ -14,18 +14,22 @@ const FileItem = ({ file, level = 0, onSelect }) => {
   const { selectedFile } = useAppStore();
   
   const isSelected = selectedFile?.id === file.id;
-  const hasChildren = file.children && file.children.length > 0;
+  const isFolder = file.type === 'folder';
+  const hasChildren = isFolder && file.children && file.children.length > 0;
 
   const handleClick = () => {
-    if (file.type === 'folder') {
-      setIsExpanded(!isExpanded);
+    if (isFolder) {
+      // Only toggle expansion if folder has children
+      if (hasChildren) {
+        setIsExpanded(!isExpanded);
+      }
     } else {
       onSelect(file);
     }
   };
 
   const getIcon = () => {
-    if (file.type === 'folder') {
+    if (isFolder) {
       return isExpanded ? FolderOpen : Folder;
     }
     return File;
@@ -43,20 +47,21 @@ const FileItem = ({ file, level = 0, onSelect }) => {
         style={{ paddingLeft: `${8 + level * 16}px` }}
         onClick={handleClick}
       >
-        {hasChildren && (
+        {/* Only show chevron for folders with children */}
+        {hasChildren ? (
           <motion.div
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2 }}
           >
             <ChevronRight size={14} className="text-vscode-text-muted" />
           </motion.div>
+        ) : (
+          <div className="w-3.5" />
         )}
-        
-        {!hasChildren && <div className="w-3.5" />}
         
         <Icon 
           size={16} 
-          className={file.type === 'folder' ? 'text-blue-400' : 'text-vscode-text-muted'} 
+          className={isFolder ? 'text-blue-400' : 'text-vscode-text-muted'} 
         />
         
         <span className="text-vscode-text flex-1">{file.name}</span>
@@ -66,6 +71,7 @@ const FileItem = ({ file, level = 0, onSelect }) => {
         )}
       </motion.div>
 
+      {/* Show children when expanded */}
       <AnimatePresence>
         {isExpanded && hasChildren && (
           <motion.div

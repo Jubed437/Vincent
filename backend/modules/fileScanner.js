@@ -4,7 +4,8 @@ const path = require('path');
 class FileScanner {
   scanProject(projectPath) {
     try {
-      const structure = this.scanDirectory(projectPath);
+      const idCounter = { current: 0 };
+      const structure = this.scanDirectory(projectPath, 0, 3, idCounter);
       const packageJson = this.readPackageJson(projectPath);
       
       return {
@@ -23,29 +24,43 @@ class FileScanner {
     }
   }
 
-  scanDirectory(dirPath, depth = 0, maxDepth = 3) {
+  scanDirectory(dirPath, depth = 0, maxDepth = 3, idCounter = { current: 0 }) {
     if (depth > maxDepth) return null;
     
     const items = [];
-    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
     
-    for (const entry of entries) {
-      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+    try {
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
       
-      const fullPath = path.join(dirPath, entry.name);
-      const item = {
-        name: entry.name,
-        path: fullPath,
-        type: entry.isDirectory() ? 'folder' : 'file'
-      };
-      
-      if (entry.isDirectory()) {
-        item.children = this.scanDirectory(fullPath, depth + 1, maxDepth);
-      } else {
-        item.size = this.getFileSize(fullPath);
+      for (const entry of entries) {
+        if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+        
+        try {
+          const fullPath = path.join(dirPath, entry.name);
+          const item = {
+            id: idCounter.current++,
+            name: entry.name,
+            path: fullPath,
+            type: entry.isDirectory() ? 'folder' : 'file'
+          };
+          
+          if (entry.isDirectory()) {
+            item.children = this.scanDirectory(fullPath, depth + 1, maxDepth, idCounter);
+          } else {
+            item.size = this.getFileSize(fullPath);
+          }
+          
+          items.push(item);
+        } catch (itemError) {
+          // Log error but continue scanning other items
+          console.error(`Error scanning ${entry.name}:`, itemError.message);
+          // Continue with next item
+        }
       }
-      
-      items.push(item);
+    } catch (error) {
+      // If we can't read the directory at all, log and return empty
+      console.error(`Error reading directory ${dirPath}:`, error.message);
+      return [];
     }
     
     return items;

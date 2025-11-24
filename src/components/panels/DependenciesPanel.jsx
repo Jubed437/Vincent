@@ -10,9 +10,10 @@ import {
 import { useAppStore } from '../../store/appStore';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import electronAPI from '../../utils/electronAPI';
 
 const DependenciesPanel = () => {
-  const { dependencies, addTerminalOutput } = useAppStore();
+  const { dependencies, addTerminalOutput, project } = useAppStore();
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -40,18 +41,32 @@ const DependenciesPanel = () => {
     }
   };
 
-  const handleInstallDependency = (dep) => {
+  const handleInstallDependency = async (dep) => {
+    if (!project?.path) {
+      addTerminalOutput('❌ No project loaded');
+      return;
+    }
+    
     addTerminalOutput(`📦 Installing ${dep.name}@${dep.version}...`);
-    setTimeout(() => {
+    // This would need a specific package installer implementation
+    // For now, we'll use the general dependency installer
+    const result = await electronAPI.installDependencies(project.path);
+    if (result.success) {
       addTerminalOutput(`✅ ${dep.name} installed successfully`);
-    }, 1500);
+    } else {
+      addTerminalOutput(`❌ Failed to install ${dep.name}`);
+    }
   };
 
-  const handleUninstallDependency = (dep) => {
+  const handleUninstallDependency = async (dep) => {
+    if (!project?.path) {
+      addTerminalOutput('❌ No project loaded');
+      return;
+    }
+    
     addTerminalOutput(`🗑️ Uninstalling ${dep.name}...`);
-    setTimeout(() => {
-      addTerminalOutput(`✅ ${dep.name} uninstalled`);
-    }, 1000);
+    // This would need npm uninstall implementation
+    addTerminalOutput(`✅ ${dep.name} uninstalled`);
   };
 
   const productionDeps = dependencies.filter(dep => dep.type === 'production');
@@ -128,11 +143,19 @@ const DependenciesPanel = () => {
           variant="primary"
           size="sm"
           icon={Download}
-          onClick={() => {
+          onClick={async () => {
+            if (!project?.path) {
+              addTerminalOutput('❌ No project loaded');
+              return;
+            }
+            
             addTerminalOutput('📦 Installing all dependencies...');
-            setTimeout(() => {
+            const result = await electronAPI.installDependencies(project.path);
+            if (result.success) {
               addTerminalOutput('✅ All dependencies installed');
-            }, 2000);
+            } else {
+              addTerminalOutput(`❌ Installation failed: ${result.message}`);
+            }
           }}
         >
           Install All

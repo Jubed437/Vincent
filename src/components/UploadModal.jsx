@@ -5,6 +5,7 @@ import { useAppStore } from '../store/appStore';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import Card from './ui/Card';
+import electronAPI from '../utils/electronAPI';
 
 const UploadModal = () => {
   const [dragActive, setDragActive] = useState(false);
@@ -13,9 +14,8 @@ const UploadModal = () => {
   
   const { 
     showUploadModal, 
-    setShowUploadModal, 
-    initializeMockData,
-    addTerminalOutput 
+    setShowUploadModal,
+    loadProject
   } = useAppStore();
 
   const handleDrag = (e) => {
@@ -46,30 +46,38 @@ const UploadModal = () => {
     }
   };
 
-  const handleUpload = async (file) => {
+  const handleUpload = async (projectPath) => {
     setIsUploading(true);
-    addTerminalOutput(`📁 Uploading project: ${file.name}`);
+    addTerminalOutput(`📁 Loading project: ${projectPath}`);
     
-    // Simulate upload progress
-    for (let i = 0; i <= 100; i += 10) {
-      setUploadProgress(i);
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    // Initialize mock data after upload
-    setTimeout(() => {
-      initializeMockData();
-      addTerminalOutput('✅ Project uploaded successfully');
-      addTerminalOutput('🔍 Analyzing project structure...');
+    try {
+      // Simulate progress
+      for (let i = 0; i <= 100; i += 20) {
+        setUploadProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      // Project upload completed
+      console.log('Project upload completed');
+    } catch (error) {
+      addTerminalOutput(`❌ Error: ${error.message}`);
+    } finally {
       setIsUploading(false);
       setUploadProgress(0);
       setShowUploadModal(false);
-    }, 500);
+    }
   };
 
-  const handleFolderUpload = () => {
-    // Simulate folder upload
-    handleUpload({ name: 'my-react-project' });
+  const handleFolderUpload = async () => {
+    try {
+      const result = await electronAPI.selectProjectFolder();
+      if (result.success) {
+        await loadProject(result);
+        setShowUploadModal(false);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+    }
   };
 
   return (

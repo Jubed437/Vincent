@@ -2,66 +2,115 @@
 class ElectronAPI {
   // Project Management
   async selectProjectFolder() {
-    return await window.require('electron').ipcRenderer.invoke('select-project-folder');
+    return await window.electronAPI.selectProjectFolder();
   }
 
-  async analyzeProject(projectPath) {
-    return await window.require('electron').ipcRenderer.invoke('analyze-project', projectPath);
+  async loadProject(projectPath) {
+    return await window.electronAPI.loadProject(projectPath);
   }
 
-  // System Dependencies
-  async checkSystemDependencies() {
-    return await window.require('electron').ipcRenderer.invoke('check-system-dependencies');
+  async detectTechStack() {
+    try {
+      return await window.electronAPI.detectTechStack();
+    } catch (error) {
+      console.error('Error detecting tech stack:', error);
+      return { success: false, message: error.message };
+    }
   }
 
-  // Dependencies Installation
-  async installDependencies(projectPath) {
-    return await window.require('electron').ipcRenderer.invoke('install-dependencies', projectPath);
+  async installDependencies() {
+    try {
+      return await window.electronAPI.installDependencies();
+    } catch (error) {
+      console.error('Error installing dependencies:', error);
+      return { success: false, message: error.message };
+    }
   }
 
-  // Project Control
   async startProject(projectPath) {
-    return await window.require('electron').ipcRenderer.invoke('start-project', projectPath);
+    try {
+      return await window.electronAPI.startProject(projectPath);
+    } catch (error) {
+      console.error('Error starting project:', error);
+      return { success: false, message: error.message };
+    }
   }
 
   async stopProject() {
-    return await window.require('electron').ipcRenderer.invoke('stop-project');
+    try {
+      return await window.electronAPI.stopProject();
+    } catch (error) {
+      console.error('Error stopping project:', error);
+      return { success: false, message: error.message };
+    }
   }
 
-  async getProjectStatus() {
-    return await window.require('electron').ipcRenderer.invoke('get-project-status');
+  // File Reading
+  async readFileContent(filePath) {
+    try {
+      return await window.electronAPI.readFileContent(filePath);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      return { success: false, message: error.message };
+    }
   }
 
   // Terminal
-  async getTerminalHistory() {
-    return await window.require('electron').ipcRenderer.invoke('get-terminal-history');
+  async createTerminal() {
+    try {
+      return await window.electronAPI.createTerminal();
+    } catch (error) {
+      console.error('Error creating terminal:', error);
+      return { success: false, message: error.message };
+    }
   }
 
-  async clearTerminal() {
-    return await window.require('electron').ipcRenderer.invoke('clear-terminal');
+  async terminalInput(input) {
+    try {
+      return await window.electronAPI.terminalInput(input);
+    } catch (error) {
+      console.error('Error sending terminal input:', error);
+      return { success: false, message: error.message };
+    }
   }
 
-  // Event Listeners
-  onTerminalOutput(callback) {
-    const ipcRenderer = window.require('electron').ipcRenderer;
-    ipcRenderer.on('terminal-output', (event, output) => callback(output));
-    
-    return () => {
-      ipcRenderer.removeAllListeners('terminal-output');
-    };
+  async killTerminal() {
+    try {
+      return await window.electronAPI.killTerminal();
+    } catch (error) {
+      console.error('Error killing terminal:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  // Event listeners
+  onTerminalData(callback) {
+    window.electronAPI.onTerminalData(callback);
+  }
+
+  onProjectLoaded(callback) {
+    window.electronAPI.onProjectLoaded(callback);
+  }
+
+  onTechStackDetected(callback) {
+    window.electronAPI.onTechStackDetected(callback);
+  }
+
+  onDependenciesInstalled(callback) {
+    window.electronAPI.onDependenciesInstalled(callback);
   }
 
   // Window Controls
   minimizeWindow() {
-    window.require('electron').ipcRenderer.send('minimize-window');
+    window.electronAPI.minimizeWindow();
   }
 
   maximizeWindow() {
-    window.require('electron').ipcRenderer.send('maximize-window');
+    window.electronAPI.maximizeWindow();
   }
 
   closeWindow() {
-    window.require('electron').ipcRenderer.send('close-window');
+    window.electronAPI.closeWindow();
   }
 }
 

@@ -1,0 +1,13 @@
+@echo off
+echo Starting Vincent...
+
+echo Starting Vite dev server...
+start "Vite" cmd /k "cd /d %~dp0 && npm run dev"
+
+echo Waiting for dev server...
+timeout /t 8 /nobreak
+
+echo Starting Electron...
+npm run electron-dev
+
+pause

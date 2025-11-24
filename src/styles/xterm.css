@@ -1,0 +1,13 @@
+@import '~xterm/css/xterm.css';
+
+.xterm {
+  padding: 10px;
+}
+
+.xterm-viewport {
+  background-color: #000000 !important;
+}
+
+.xterm-screen {
+  background-color: #000000 !important;
+}

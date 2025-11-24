@@ -7,13 +7,51 @@ import {
   Globe,
   CheckCircle,
   AlertCircle,
-  Clock
+  Clock,
+  Play,
+  Loader2
 } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import Card from '../ui/Card';
+import Button from '../ui/Button';
+import electronAPI from '../../utils/electronAPI';
 
 const ProjectSummary = () => {
-  const { techStack, project } = useAppStore();
+  const { project, projectFiles } = useAppStore();
+  
+  // Mock data for now - these would come from actual analysis
+  const techStack = [];
+  const npmScripts = [];
+  const dependencies = [];
+
+  const countFiles = (files) => {
+    return files.reduce((count, file) => {
+      if (file.type === 'file') {
+        return count + 1;
+      } else if (file.children) {
+        return count + countFiles(file.children);
+      }
+      return count;
+    }, 0);
+  };
+
+  const handleRunScript = async (scriptName) => {
+    if (!project?.path) return;
+
+    try {
+      console.log(`Running npm script: ${scriptName}`);
+      
+      // Execute script via terminal
+      const result = await electronAPI.terminalInput(`npm run ${scriptName}`);
+      if (result.success) {
+        console.log(`Script ${scriptName} executed`);
+      } else {
+        console.error(`Script ${scriptName} failed:`, result.message);
+      }
+    } catch (error) {
+      console.error(`Error running script: ${error.message}`);
+    }
+  };
 
   const getStackIcon = (type) => {
     switch (type) {
@@ -40,17 +78,17 @@ const ProjectSummary = () => {
   };
 
   const projectStats = {
-    totalFiles: 24,
-    linesOfCode: 1847,
-    dependencies: 12,
-    devDependencies: 8
+    totalFiles: projectFiles ? countFiles(projectFiles) : 0,
+    linesOfCode: 0, // Would need file content analysis
+    dependencies: dependencies.filter(d => d.type === 'production').length,
+    devDependencies: dependencies.filter(d => d.type === 'development').length
   };
 
   const analysisSteps = [
-    { id: 1, name: 'Project Structure Analysis', status: 'completed' },
-    { id: 2, name: 'Dependency Detection', status: 'completed' },
-    { id: 3, name: 'Tech Stack Identification', status: 'completed' },
-    { id: 4, name: 'Security Scan', status: 'in-progress' },
+    { id: 1, name: 'Project Structure Analysis', status: project ? 'completed' : 'pending' },
+    { id: 2, name: 'Dependency Detection', status: dependencies.length > 0 ? 'completed' : 'pending' },
+    { id: 3, name: 'Tech Stack Identification', status: techStack.length > 0 ? 'completed' : 'pending' },
+    { id: 4, name: 'Security Scan', status: 'pending' },
     { id: 5, name: 'Performance Analysis', status: 'pending' }
   ];
 
@@ -123,6 +161,43 @@ const ProjectSummary = () => {
           </div>
         )}
       </Card>
+
+      {/* NPM Scripts */}
+      {npmScripts.length > 0 && (
+        <Card>
+          <h4 className="text-vscode-text font-medium mb-3">NPM Scripts</h4>
+          <div className="space-y-2">
+            {npmScripts.map((script, index) => (
+              <motion.div
+                key={script.name}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="flex items-center gap-3 p-2 rounded bg-vscode-hover"
+              >
+                <div className="flex-1">
+                  <div className="text-vscode-text text-sm font-medium">
+                    {script.name}
+                  </div>
+                  <div className="text-vscode-text-muted text-xs font-mono">
+                    {script.command}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={script.running ? Loader2 : Play}
+                  onClick={() => handleRunScript(script.name)}
+                  disabled={script.running}
+                  className={script.running ? 'animate-spin' : ''}
+                >
+                  {script.running ? 'Running' : 'Run'}
+                </Button>
+              </motion.div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Analysis Progress */}
       <Card>

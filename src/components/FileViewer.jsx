@@ -1,10 +1,51 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { File, Code, Image, FileText, Archive } from 'lucide-react';
+import { File, Code, Image, FileText, Archive, Loader2, AlertCircle } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import Card from './ui/Card';
+import electronAPI from '../utils/electronAPI';
 
 const FileViewer = () => {
   const { selectedFile } = useAppStore();
+  const [fileContent, setFileContent] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isBinary, setIsBinary] = useState(false);
+
+  // Load file content when selectedFile changes
+  useEffect(() => {
+    const loadFileContent = async () => {
+      if (!selectedFile || selectedFile.type === 'folder') {
+        setFileContent('');
+        setError(null);
+        setIsBinary(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+      setIsBinary(false);
+
+      try {
+        const result = await electronAPI.readFileContent(selectedFile.path);
+        
+        if (result.success) {
+          setFileContent(result.data.content);
+        } else {
+          setError(result.message);
+          if (result.isBinary) {
+            setIsBinary(true);
+          }
+        }
+      } catch (err) {
+        setError(`Failed to read file: ${err.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFileContent();
+  }, [selectedFile]);
 
   const getFileIcon = (fileName) => {
     const ext = fileName?.split('.').pop()?.toLowerCase();
@@ -32,8 +73,6 @@ const FileViewer = () => {
     }
   };
 
-
-
   if (!selectedFile) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -49,7 +88,25 @@ const FileViewer = () => {
   }
 
   const Icon = getFileIcon(selectedFile.name);
-  const content = '// File content will be displayed here';
+  
+  const getLanguage = (fileName) => {
+    const ext = fileName?.split('.').pop()?.toLowerCase();
+    const langMap = {
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'json': 'json',
+      'css': 'css',
+      'html': 'html',
+      'md': 'markdown',
+      'py': 'python',
+      'java': 'java',
+      'cpp': 'cpp',
+      'c': 'c'
+    };
+    return langMap[ext] || 'text';
+  };
 
   return (
     <motion.div
@@ -71,9 +128,35 @@ const FileViewer = () => {
         <div className="h-full p-4">
           <Card className="h-full" padding="none">
             <div className="h-full overflow-auto scrollbar-thin">
-              <pre className="p-4 text-sm font-mono text-vscode-text leading-relaxed">
-                <code>{content}</code>
-              </pre>
+              {isLoading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <Loader2 size={32} className="text-vscode-accent mx-auto mb-2 animate-spin" />
+                    <p className="text-vscode-text-muted text-sm">Loading file...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center max-w-md">
+                    <AlertCircle size={32} className="text-red-500 mx-auto mb-2" />
+                    <p className="text-vscode-text font-medium mb-2">
+                      {isBinary ? 'Binary File' : 'Error Reading File'}
+                    </p>
+                    <p className="text-vscode-text-muted text-sm">{error}</p>
+                    {isBinary && (
+                      <p className="text-vscode-text-muted text-xs mt-2">
+                        This file cannot be displayed as text
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <pre className="p-4 text-sm font-mono text-vscode-text leading-relaxed whitespace-pre-wrap break-words">
+                  <code className={`language-${getLanguage(selectedFile.name)}`}>
+                    {fileContent || '// Empty file'}
+                  </code>
+                </pre>
+              )}
             </div>
           </Card>
         </div>

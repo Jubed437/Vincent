@@ -8,37 +8,79 @@ const Header = () => {
     isProjectRunning, 
     setProjectRunning, 
     setShowUploadModal,
-    addTerminalOutput 
+    loadProject,
+    project
   } = useAppStore();
 
   const handleUpload = async () => {
-    const result = await electronAPI.selectProjectFolder();
-    if (result.success) {
-      addTerminalOutput(`📁 Project loaded: ${result.data.project.path}`);
+    try {
+      const result = await electronAPI.selectProjectFolder();
+      if (result.success && result.path) {
+        const projectData = await electronAPI.loadProject(result.path);
+        if (projectData.success) {
+          await loadProject(projectData);
+          console.log('Project loaded:', projectData);
+        } else {
+          console.error('Failed to load project:', projectData.message);
+        }
+      } else {
+        console.error('Failed to select project folder:', result.message || 'No folder selected');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
     }
   };
 
   const handleDetectTechStack = async () => {
-    const result = await electronAPI.checkSystemDependencies();
-    if (result.success) {
-      addTerminalOutput('✅ System dependencies checked');
+    try {
+      const result = await electronAPI.detectTechStack();
+      if (result.success) {
+        console.log('Tech stack detected:', result);
+      } else {
+        console.error('Tech stack detection failed:', result.message);
+      }
+    } catch (error) {
+      console.error('Analysis failed:', error);
     }
   };
 
   const handleInstallDependencies = async () => {
-    // This will be handled by project path from store
-    addTerminalOutput('📦 Use Upload Project first');
+    try {
+      const result = await electronAPI.installDependencies();
+      if (result.success) {
+        console.log('Dependencies installed successfully');
+      } else {
+        console.error('Installation failed:', result.message);
+      }
+    } catch (error) {
+      console.error('Installation failed:', error);
+    }
   };
 
   const handleStartProject = async () => {
-    if (isProjectRunning) {
-      const result = await electronAPI.stopProject();
-      if (result.success) {
-        setProjectRunning(false);
+    try {
+      if (isProjectRunning) {
+        const result = await electronAPI.stopProject();
+        if (result.success) {
+          setProjectRunning(false);
+          console.log('Project stopped');
+        }
+      } else {
+        if (!project?.path) {
+          console.error('No project loaded');
+          return;
+        }
+        
+        const result = await electronAPI.startProject(project.path);
+        if (result.success) {
+          setProjectRunning(true);
+          console.log('Project started');
+        } else {
+          console.error('Failed to start project:', result.message);
+        }
       }
-    } else {
-      // This will be handled by project path from store
-      addTerminalOutput('🚀 Use Upload Project first');
+    } catch (error) {
+      console.error('Project control error:', error);
     }
   };
 

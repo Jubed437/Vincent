@@ -1,5 +1,25 @@
 import { create } from 'zustand';
 
+// Load command history from localStorage
+const loadCommandHistory = () => {
+  try {
+    const saved = localStorage.getItem('commandHistory');
+    return saved ? JSON.parse(saved) : [];
+  } catch (error) {
+    console.error('Failed to load command history:', error);
+    return [];
+  }
+};
+
+// Save command history to localStorage
+const saveCommandHistory = (history) => {
+  try {
+    localStorage.setItem('commandHistory', JSON.stringify(history));
+  } catch (error) {
+    console.error('Failed to save command history:', error);
+  }
+};
+
 export const useAppStore = create((set, get) => ({
   // Project State
   project: null,
@@ -7,15 +27,18 @@ export const useAppStore = create((set, get) => ({
   selectedFile: null,
   techStack: [],
   dependencies: [],
+  npmScripts: [],
   
   // UI State
   sidebarCollapsed: false,
   activePanel: 'terminal', // 'terminal' | 'logs'
   activeView: 'explorer', // 'explorer' | 'summary' | 'dependencies' | 'actions'
   
-  // Terminal State
+  // Terminal State (kept for compatibility)
   terminalOutput: [],
   isProjectRunning: false,
+  commandHistory: loadCommandHistory(),
+  historyIndex: -1,
   
   // Modal State
   showUploadModal: false,
@@ -24,11 +47,35 @@ export const useAppStore = create((set, get) => ({
   setProject: (project) => set({ project }),
   
   loadProject: async (projectData) => {
+    // Handle different response formats with fallback logic
+    const structure = projectData.data?.structure || 
+                     projectData.project?.structure || 
+                     projectData.structure || 
+                     [];
+    
+    const project = projectData.data?.project || 
+                   projectData.project || 
+                   null;
+    
+    const analysis = projectData.data?.analysis || 
+                    projectData.analysis || 
+                    {};
+    
+    // Extract npm scripts from package.json
+    const packageJson = projectData.data?.packageJson || analysis.packageJson;
+    const scripts = packageJson?.scripts || {};
+    const npmScripts = Object.entries(scripts).map(([name, command]) => ({
+      name,
+      command,
+      running: false
+    }));
+    
     set({ 
-      project: projectData.project,
-      projectFiles: projectData.project.structure || [],
-      techStack: projectData.analysis?.techStack || [],
-      dependencies: projectData.analysis?.dependencies?.production || []
+      project: project,
+      projectFiles: structure,
+      techStack: analysis.techStack || [],
+      dependencies: analysis.dependencies?.production || [],
+      npmScripts: npmScripts
     });
   },
   
@@ -46,13 +93,18 @@ export const useAppStore = create((set, get) => ({
   
   setActiveView: (view) => set({ activeView: view }),
   
-  addTerminalOutput: (output) => set((state) => ({
-    terminalOutput: [...state.terminalOutput, {
-      id: Date.now(),
+  addTerminalOutput: (output) => set((state) => {
+    const newOutput = {
+      id: Date.now() + Math.random(),
       text: output,
       timestamp: new Date().toLocaleTimeString()
-    }]
-  })),
+    };
+    const newTerminalOutput = [...state.terminalOutput, newOutput];
+    // Limit to 1000 lines
+    return {
+      terminalOutput: newTerminalOutput.length > 1000 ? newTerminalOutput.slice(-1000) : newTerminalOutput
+    };
+  }),
   
   clearTerminalOutput: () => set({ terminalOutput: [] }),
   
@@ -68,28 +120,72 @@ export const useAppStore = create((set, get) => ({
   
   setShowUploadModal: (show) => set({ showUploadModal: show }),
   
-  // Mock data initialization
-  initializeMockData: () => set({
-    projectFiles: [
-      { id: 1, name: 'package.json', type: 'file', path: '/package.json', size: '1.2KB' },
-      { id: 2, name: 'src', type: 'folder', path: '/src', children: [
-        { id: 3, name: 'index.js', type: 'file', path: '/src/index.js', size: '856B' },
-        { id: 4, name: 'components', type: 'folder', path: '/src/components', children: [
-          { id: 5, name: 'App.js', type: 'file', path: '/src/components/App.js', size: '2.1KB' }
-        ]}
-      ]},
-      { id: 6, name: 'README.md', type: 'file', path: '/README.md', size: '3.4KB' }
-    ],
-    techStack: [
-      { name: 'React', version: '18.2.0', type: 'framework' },
-      { name: 'Express', version: '4.18.2', type: 'backend' },
-      { name: 'MongoDB', version: '5.0', type: 'database' }
-    ],
-    dependencies: [
-      { name: 'react', version: '18.2.0', status: 'installed', type: 'production' },
-      { name: 'express', version: '4.18.2', status: 'installed', type: 'production' },
-      { name: 'mongoose', version: '7.4.0', status: 'pending', type: 'production' },
-      { name: 'nodemon', version: '3.0.1', status: 'installed', type: 'development' }
-    ]
+  // Command History
+  addCommandToHistory: (command) => set((state) => {
+    const newHistory = [...state.commandHistory, command];
+    // Limit to 100 entries
+    const limitedHistory = newHistory.length > 100 ? newHistory.slice(-100) : newHistory;
+    
+    // Save to localStorage
+    saveCommandHistory(limitedHistory);
+    
+    return {
+      commandHistory: limitedHistory,
+      historyIndex: -1 // Reset index after adding
+    };
+  }),
+  
+  navigateHistory: (direction) => set((state) => {
+    if (state.commandHistory.length === 0) return state;
+    
+    let newIndex = state.historyIndex;
+    
+    if (direction === 'up') {
+      // Move backward in history (older commands)
+      newIndex = newIndex === -1 
+        ? state.commandHistory.length - 1 
+        : Math.max(0, newIndex - 1);
+    } else if (direction === 'down') {
+      // Move forward in history (newer commands)
+      if (newIndex === -1) {
+        return state; // Already at the end
+      }
+      
+      newIndex = newIndex + 1;
+      
+      // If we go past the end, reset to -1
+      if (newIndex >= state.commandHistory.length) {
+        newIndex = -1;
+      }
+    }
+    
+    return { historyIndex: newIndex };
+  }),
+  
+  getHistoryCommand: () => {
+    const state = get();
+    if (state.historyIndex === -1 || state.commandHistory.length === 0) {
+      return '';
+    }
+    return state.commandHistory[state.historyIndex] || '';
+  },
+  
+  // NPM Scripts
+  setNpmScripts: (scripts) => set({ npmScripts: scripts }),
+  
+  setScriptRunning: (scriptName, running) => set((state) => ({
+    npmScripts: state.npmScripts.map(script =>
+      script.name === scriptName ? { ...script, running } : script
+    )
+  })),
+  
+  // Clear all data
+  clearProject: () => set({
+    project: null,
+    projectFiles: [],
+    selectedFile: null,
+    techStack: [],
+    dependencies: [],
+    npmScripts: []
   })
 }));
