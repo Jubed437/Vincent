@@ -31,6 +31,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getEditors: () => ipcRenderer.invoke('get-editors'),
   openEditor: (editorPath, projectPath) => ipcRenderer.invoke('open-editor', editorPath, projectPath),
   
+  // LLM Analysis
+  semanticAnalysis: (staticResult) => ipcRenderer.invoke('ai-semantic-analysis', staticResult),
+  analyzeProjectEnhanced: (projectPath) => ipcRenderer.invoke('analyze-project-enhanced', projectPath),
+  
   // Event listeners
   onTerminalData: (callback) => {
     ipcRenderer.on('terminal-data', (event, data) => callback(data));
@@ -48,6 +52,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDependenciesInstalled: (callback) => {
     ipcRenderer.on('dependencies-installed', (event, data) => callback(data));
   },
+  
+  // AI Analysis (legacy)
+  analyzeProjectStructure: (projectPath) => ipcRenderer.invoke('ai-analyze-structure', projectPath),
+  findPotentialBugs: (projectPath) => ipcRenderer.invoke('ai-find-bugs', projectPath),
+  analyzePerformance: (projectPath) => ipcRenderer.invoke('ai-analyze-performance', projectPath),
+  securityAudit: (projectPath) => ipcRenderer.invoke('ai-security-audit', projectPath),
   
   // Remove listeners
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)

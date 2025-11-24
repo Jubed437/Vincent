@@ -5,6 +5,7 @@ const dependencyInstaller = require('./modules/dependencyInstaller');
 const projectRunner = require('./modules/projectRunner');
 const terminalManager = require('./modules/terminalManager');
 const aiAnalyzer = require('./modules/aiAnalyzer');
+const aiAgentLLM = require('./modules/aiAgentLLM');
 const editorManager = require('./modules/editorManager');
 
 class VincentEngine {
@@ -135,6 +136,11 @@ class VincentEngine {
       return await aiAnalyzer.securityAudit(projectPath);
     });
 
+    // LLM Semantic Analysis
+    ipcMain.handle('ai-semantic-analysis', async (event, staticResult) => {
+      return await aiAgentLLM.runSemanticAnalysis(staticResult);
+    });
+
     // Editor Management
     ipcMain.handle('detect-editors', async () => {
       return await editorManager.detectEditors();
@@ -146,6 +152,22 @@ class VincentEngine {
 
     ipcMain.handle('open-editor', async (event, editorPath, projectPath) => {
       return await editorManager.openEditor(editorPath, projectPath);
+    });
+
+    // Enhanced project analysis with LLM
+    ipcMain.handle('analyze-project-enhanced', async (event, projectPath) => {
+      const staticResult = await this.analyzeProject(projectPath);
+      if (staticResult.success && staticResult.data.staticAnalysis) {
+        const llmResult = await aiAgentLLM.runSemanticAnalysis(staticResult.data.staticAnalysis);
+        return {
+          ...staticResult,
+          data: {
+            ...staticResult.data,
+            semanticAnalysis: llmResult.data
+          }
+        };
+      }
+      return staticResult;
     });
   }
 
@@ -234,6 +256,20 @@ class VincentEngine {
         return techResult;
       }
 
+      // Prepare static analysis for LLM
+      const staticAnalysis = {
+        fileBreakdown: scanResult.data.fileBreakdown || {},
+        dependencyGraph: scanResult.data.dependencies || {},
+        techStack: techResult.data.techStack || [],
+        scripts: scanResult.data.packageJson?.scripts || {},
+        issues: [],
+        projectSummary: {
+          name: require('path').basename(projectPath),
+          type: techResult.data.projectType,
+          fileCount: scanResult.data.structure?.length || 0
+        }
+      };
+
       terminalManager.logSuccess(`Detected: ${techResult.data.projectType}`);
       terminalManager.logInfo(`Found ${techResult.data.techStack.length} technologies`);
 
@@ -242,7 +278,8 @@ class VincentEngine {
         message: 'Project analysis completed',
         data: {
           ...scanResult.data,
-          ...techResult.data
+          ...techResult.data,
+          staticAnalysis
         }
       };
     } catch (error) {
