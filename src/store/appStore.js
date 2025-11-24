@@ -175,6 +175,25 @@ export const useAppStore = create((set, get) => ({
   // NPM Scripts
   setNpmScripts: (scripts) => set({ npmScripts: scripts }),
   
+  // Semantic Analysis Results
+  semanticInsights: null,
+  fileDescriptions: {},
+  apiFlow: null,
+  componentFlow: null,
+  criticalIssues: [],
+  recommendations: [],
+  frameworkInsights: null,
+  
+  setSemanticAnalysis: (analysis) => set({
+    semanticInsights: analysis.semanticInsights,
+    fileDescriptions: analysis.fileDescriptions || {},
+    apiFlow: analysis.apiFlow,
+    componentFlow: analysis.componentFlow,
+    criticalIssues: analysis.criticalIssues || [],
+    recommendations: analysis.recommendations || [],
+    frameworkInsights: analysis.frameworkInsights
+  }),
+  
   setScriptRunning: (scriptName, running) => set((state) => ({
     npmScripts: state.npmScripts.map(script =>
       script.name === scriptName ? { ...script, running } : script
@@ -191,6 +210,13 @@ export const useAppStore = create((set, get) => ({
     selectedFile: null,
     techStack: [],
     dependencies: [],
-    npmScripts: []
+    npmScripts: [],
+    semanticInsights: null,
+    fileDescriptions: {},
+    apiFlow: null,
+    componentFlow: null,
+    criticalIssues: [],
+    recommendations: [],
+    frameworkInsights: null
   })
 }));

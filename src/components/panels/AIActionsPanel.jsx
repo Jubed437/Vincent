@@ -8,15 +8,19 @@ import {
   Shield, 
   Lightbulb,
   Play,
-  CheckCircle
+  CheckCircle,
+  Brain,
+  Loader2
 } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import electronAPI from '../../utils/electronAPI';
+import { useState } from 'react';
 
 const AIActionsPanel = () => {
-  const { addTerminalOutput, project } = useAppStore();
+  const { addTerminalOutput, project, setSemanticAnalysis, semanticInsights } = useAppStore();
+  const [isRunningDeepAnalysis, setIsRunningDeepAnalysis] = useState(false);
 
   const aiActions = [
     {
@@ -124,11 +128,17 @@ const AIActionsPanel = () => {
       description: 'Get AI suggestions for code quality improvements',
       icon: Lightbulb,
       color: 'text-purple-400',
-      action: () => {
+      action: async () => {
+        if (!project?.path) {
+          addTerminalOutput('❌ No project loaded');
+          return;
+        }
+        
         addTerminalOutput('🤖 AI: Generating improvement suggestions...');
-        setTimeout(() => {
-          addTerminalOutput('✅ AI: Generated 7 code improvement suggestions.');
-        }, 2200);
+        const result = await electronAPI.analyzeProjectStructure(project.path);
+        if (result.success) {
+          addTerminalOutput(`✅ AI: Generated ${result.data.suggestions?.length || 0} suggestions`);
+        }
       }
     },
     {
@@ -146,11 +156,38 @@ const AIActionsPanel = () => {
     }
   ];
 
+  const runDeepAnalysis = async () => {
+    if (!project?.path) {
+      addTerminalOutput('❌ No project loaded');
+      return;
+    }
+    
+    setIsRunningDeepAnalysis(true);
+    addTerminalOutput('🧠 AI: Starting deep semantic analysis...');
+    
+    try {
+      const result = await electronAPI.analyzeProjectEnhanced(project.path);
+      
+      if (result.success && result.data.semanticAnalysis) {
+        setSemanticAnalysis(result.data.semanticAnalysis);
+        addTerminalOutput('✅ AI: Deep analysis completed with LLM insights');
+        addTerminalOutput(`📊 Found ${result.data.semanticAnalysis.criticalIssues?.length || 0} critical issues`);
+        addTerminalOutput(`💡 Generated ${result.data.semanticAnalysis.recommendations?.length || 0} recommendations`);
+      } else {
+        addTerminalOutput('⚠️ AI: Analysis completed with basic insights (LLM unavailable)');
+      }
+    } catch (error) {
+      addTerminalOutput(`❌ AI: Deep analysis failed: ${error.message}`);
+    } finally {
+      setIsRunningDeepAnalysis(false);
+    }
+  };
+
   const workflowSteps = [
-    { id: 1, name: 'Project Upload', status: 'completed' },
-    { id: 2, name: 'Structure Analysis', status: 'completed' },
-    { id: 3, name: 'Dependency Resolution', status: 'in-progress' },
-    { id: 4, name: 'Code Quality Check', status: 'pending' },
+    { id: 1, name: 'Project Upload', status: project ? 'completed' : 'pending' },
+    { id: 2, name: 'Structure Analysis', status: project ? 'completed' : 'pending' },
+    { id: 3, name: 'Dependency Resolution', status: project ? 'completed' : 'pending' },
+    { id: 4, name: 'Semantic Analysis', status: semanticInsights ? 'completed' : 'pending' },
     { id: 5, name: 'Security Scan', status: 'pending' },
     { id: 6, name: 'Performance Analysis', status: 'pending' }
   ];
@@ -190,6 +227,31 @@ const AIActionsPanel = () => {
               </span>
             </motion.div>
           ))}
+        </div>
+      </Card>
+
+      {/* Deep AI Analysis */}
+      <Card>
+        <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
+          <Brain size={16} className="text-purple-400" />
+          LLM-Powered Analysis
+        </h4>
+        <div className="space-y-3">
+          <Button
+            variant="primary"
+            icon={isRunningDeepAnalysis ? Loader2 : Brain}
+            onClick={runDeepAnalysis}
+            disabled={isRunningDeepAnalysis || !project}
+            className={`w-full ${isRunningDeepAnalysis ? 'animate-pulse' : ''}`}
+          >
+            {isRunningDeepAnalysis ? 'Running Deep Analysis...' : 'Deep AI Analysis'}
+          </Button>
+          
+          {semanticInsights && (
+            <div className="text-xs text-vscode-text-muted bg-vscode-hover p-2 rounded">
+              ✅ Enhanced analysis available - check Project Summary for insights
+            </div>
+          )}
         </div>
       </Card>
 

@@ -129,6 +129,62 @@ class ElectronAPI {
     }
   }
 
+  // LLM Analysis
+  async analyzeProjectEnhanced(projectPath) {
+    try {
+      return await window.electronAPI.analyzeProjectEnhanced(projectPath);
+    } catch (error) {
+      console.error('Error running enhanced analysis:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  async semanticAnalysis(staticResult) {
+    try {
+      return await window.electronAPI.semanticAnalysis(staticResult);
+    } catch (error) {
+      console.error('Error running semantic analysis:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  // Legacy AI Analysis
+  async analyzeProjectStructure(projectPath) {
+    try {
+      return await window.electronAPI.analyzeProjectStructure(projectPath);
+    } catch (error) {
+      console.error('Error analyzing project structure:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  async findPotentialBugs(projectPath) {
+    try {
+      return await window.electronAPI.findPotentialBugs(projectPath);
+    } catch (error) {
+      console.error('Error finding bugs:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  async analyzePerformance(projectPath) {
+    try {
+      return await window.electronAPI.analyzePerformance(projectPath);
+    } catch (error) {
+      console.error('Error analyzing performance:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
+  async securityAudit(projectPath) {
+    try {
+      return await window.electronAPI.securityAudit(projectPath);
+    } catch (error) {
+      console.error('Error running security audit:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
   // Event listeners
   onTerminalData(callback) {
     window.electronAPI.onTerminalData(callback);
