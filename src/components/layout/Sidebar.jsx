@@ -5,6 +5,7 @@ import {
   FileText, 
   Package, 
   Bot,
+  Code2,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -15,6 +16,7 @@ import FileExplorer from '../panels/FileExplorer';
 import ProjectSummary from '../panels/ProjectSummary';
 import DependenciesPanel from '../panels/DependenciesPanel';
 import AIActionsPanel from '../panels/AIActionsPanel';
+import EditorsPanel from '../panels/EditorsPanel';
 
 const Sidebar = () => {
   const { 
@@ -77,6 +79,12 @@ const Sidebar = () => {
       disabled: !projectLoaded && !isLoading
     },
     { 
+      id: 'editors', 
+      label: 'Editors', 
+      icon: Code2,
+      disabled: false
+    },
+    { 
       id: 'actions', 
       label: 'AI Actions', 
       icon: Bot,
@@ -92,6 +100,8 @@ const Sidebar = () => {
         return <ProjectSummary />;
       case 'dependencies':
         return <DependenciesPanel />;
+      case 'editors':
+        return <EditorsPanel />;
       case 'actions':
         return <AIActionsPanel />;
       default:

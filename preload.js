@@ -42,6 +42,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getProjectHistory: (projectId) => ipcRenderer.invoke('get-project-history', projectId),
   cleanupDatabase: () => ipcRenderer.invoke('cleanup-database'),
   
+  // Editors
+  getEditors: () => ipcRenderer.invoke('editors:list'),
+  openEditor: (editorPath, projectPath) => ipcRenderer.invoke('editor:open', { editorPath, projectPath }),
+  
   // Window Controls
   minimizeWindow: () => ipcRenderer.send('minimize-window'),
   maximizeWindow: () => ipcRenderer.send('maximize-window'),
@@ -53,5 +57,7 @@ contextBridge.exposeInMainWorld('api', {
   readFile: (filePath) => {
     console.log('preload: api.readFile called with', filePath);
     return ipcRenderer.invoke('file:read', { filePath });
-  }
+  },
+  getEditors: () => ipcRenderer.invoke('editors:list'),
+  openEditor: (editorPath, projectPath) => ipcRenderer.invoke('editor:open', { editorPath, projectPath })
 });

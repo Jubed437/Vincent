@@ -22,6 +22,9 @@ export const useAppStore = create((set, get) => ({
   terminalOutput: [],
   isProjectRunning: false,
   
+  // Editors State
+  editors: [],
+  
   // Modal State
   showUploadModal: false,
   
@@ -107,6 +110,9 @@ export const useAppStore = create((set, get) => ({
   
   setProjectRunning: (running) => set({ isProjectRunning: running }),
   setShowUploadModal: (show) => set({ showUploadModal: show }),
+  
+  // Editor actions
+  setEditors: (editors) => set({ editors }),
   
   // Helper functions
   countFolders: (files) => {

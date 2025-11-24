@@ -3,6 +3,34 @@ import { File, Code, Image, FileText, Archive, Loader2 } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import Card from './ui/Card';
 
+// Safe syntax highlighter without HTML injection
+const highlightSyntax = (code, language) => {
+  try {
+    if (!code || typeof code !== 'string') return 'File is empty';
+    
+    // Return plain text without HTML injection for security
+    return code;
+  } catch (error) {
+    console.error('Syntax highlighting error:', error);
+    return code || 'Error loading file content';
+  }
+};
+
+const getLanguageFromExtension = (fileName) => {
+  const ext = fileName?.split('.').pop()?.toLowerCase();
+  const langMap = {
+    'js': 'js', 'jsx': 'jsx', 'ts': 'ts', 'tsx': 'tsx',
+    'css': 'css', 'scss': 'css', 'sass': 'css', 'less': 'css',
+    'html': 'html', 'htm': 'html',
+    'json': 'json',
+    'md': 'md', 'markdown': 'md',
+    'py': 'python', 'rb': 'ruby', 'php': 'php',
+    'java': 'java', 'c': 'c', 'cpp': 'cpp', 'cs': 'cs',
+    'go': 'go', 'rs': 'rust', 'swift': 'swift'
+  };
+  return langMap[ext] || 'text';
+};
+
 const FileViewer = () => {
   const { selectedFile, selectedFileContent, selectedFilePath, isLoadingFile } = useAppStore();
 
@@ -101,11 +129,38 @@ const FileViewer = () => {
       );
     }
 
+    const language = getLanguageFromExtension(selectedFile.name);
+    const highlightedCode = highlightSyntax(selectedFileContent, language);
+    
     return (
       <div className="h-full overflow-auto scrollbar-thin">
-        <pre className="p-4 text-sm whitespace-pre-wrap bg-[#1e1e1e] text-gray-200 font-mono">
-          <code>{selectedFileContent || 'File is empty'}</code>
-        </pre>
+        <div className="relative">
+          {/* Language indicator */}
+          <div className="absolute top-2 right-2 z-10">
+            <span className="bg-vscode-panel text-vscode-text-muted text-xs px-2 py-1 rounded border border-vscode-border">
+              {language.toUpperCase()}
+            </span>
+          </div>
+          
+          {/* Line numbers and code */}
+          <div className="flex bg-[#1e1e1e] code-viewer">
+            {/* Line numbers */}
+            <div className="line-numbers text-xs font-mono p-4">
+              {selectedFileContent?.split('\n').map((_, index) => (
+                <div key={index} className="leading-5">
+                  {index + 1}
+                </div>
+              )) || <div>1</div>}
+            </div>
+            
+            {/* Code content */}
+            <pre className="flex-1 p-4 pl-3 text-sm whitespace-pre-wrap text-gray-200 font-mono leading-5">
+              <code className="block">
+                {highlightedCode}
+              </code>
+            </pre>
+          </div>
+        </div>
       </div>
     );
   };
