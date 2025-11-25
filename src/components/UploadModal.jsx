@@ -9,8 +9,6 @@ import electronAPI from '../utils/electronAPI';
 
 const UploadModal = () => {
   const [dragActive, setDragActive] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
   
   const { 
     showUploadModal, 
@@ -48,25 +46,7 @@ const UploadModal = () => {
   };
 
   const handleUpload = async (projectPath) => {
-    setIsUploading(true);
     addTerminalOutput(`📁 Loading project: ${projectPath}`);
-    
-    try {
-      // Simulate progress
-      for (let i = 0; i <= 100; i += 20) {
-        setUploadProgress(i);
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      
-      // Project upload completed
-      console.log('Project upload completed');
-    } catch (error) {
-      addTerminalOutput(`❌ Error: ${error.message}`);
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      setShowUploadModal(false);
-    }
   };
 
   const handleFolderUpload = async () => {
@@ -84,10 +64,9 @@ const UploadModal = () => {
   return (
     <Modal
       isOpen={showUploadModal}
-      onClose={() => !isUploading && setShowUploadModal(false)}
+      onClose={() => setShowUploadModal(false)}
       title="Upload Project"
       size="lg"
-      showCloseButton={!isUploading}
     >
       <div className="space-y-6">
         {/* Upload Area */}
@@ -126,7 +105,6 @@ const UploadModal = () => {
                 variant="primary"
                 icon={FolderOpen}
                 onClick={handleFolderUpload}
-                disabled={isUploading}
               >
                 Select Folder
               </Button>
@@ -135,7 +113,6 @@ const UploadModal = () => {
                 <Button
                   variant="secondary"
                   icon={File}
-                  disabled={isUploading}
                   as="span"
                 >
                   Select Files
@@ -146,38 +123,11 @@ const UploadModal = () => {
                   accept=".zip,.tar,.gz,.js,.jsx,.ts,.tsx,.json"
                   onChange={handleFileSelect}
                   className="hidden"
-                  disabled={isUploading}
                 />
               </label>
             </div>
           </div>
         </Card>
-
-        {/* Upload Progress */}
-        {isUploading && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-vscode-text text-sm">Uploading project...</span>
-                  <span className="text-vscode-text-muted text-sm">{uploadProgress}%</span>
-                </div>
-                
-                <div className="w-full bg-vscode-border rounded-full h-2">
-                  <motion.div
-                    className="bg-vscode-accent h-2 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${uploadProgress}%` }}
-                    transition={{ duration: 0.1 }}
-                  />
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        )}
 
         {/* Supported Formats */}
         <div className="text-center">

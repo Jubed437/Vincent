@@ -1,13 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronRight, 
-  ChevronDown, 
-  File, 
-  Folder, 
-  FolderOpen 
-} from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
+import { getFileIcon } from '../../utils/fileIcons';
 
 const FileItem = ({ file, level = 0, onSelect }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -28,20 +23,14 @@ const FileItem = ({ file, level = 0, onSelect }) => {
     }
   };
 
-  const getIcon = () => {
-    if (isFolder) {
-      return isExpanded ? FolderOpen : Folder;
-    }
-    return File;
-  };
-
-  const Icon = getIcon();
+  // Get the appropriate icon based on file type and name
+  const IconComponent = getFileIcon(file.name, file.type, isExpanded);
 
   return (
     <div>
       <motion.div
         whileHover={{ backgroundColor: '#2a2d2e' }}
-        className={`flex items-center gap-2 px-2 py-1 cursor-pointer text-sm ${
+        className={`flex items-center gap-2 px-2 py-1 cursor-pointer text-sm group ${
           isSelected ? 'bg-vscode-active' : ''
         }`}
         style={{ paddingLeft: `${8 + level * 16}px` }}
@@ -52,22 +41,29 @@ const FileItem = ({ file, level = 0, onSelect }) => {
           <motion.div
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2 }}
+            className="flex-shrink-0"
           >
             <ChevronRight size={14} className="text-vscode-text-muted" />
           </motion.div>
         ) : (
-          <div className="w-3.5" />
+          <div className="w-3.5 flex-shrink-0" />
         )}
         
-        <Icon 
-          size={16} 
-          className={isFolder ? 'text-blue-400' : 'text-vscode-text-muted'} 
-        />
+        {/* File/Folder Icon */}
+        <div className="flex-shrink-0">
+          <IconComponent size={16} className="transition-transform group-hover:scale-110" />
+        </div>
         
-        <span className="text-vscode-text flex-1 truncate overflow-hidden text-ellipsis max-w-full">{file.name}</span>
+        {/* File Name */}
+        <span className="text-vscode-text flex-1 truncate overflow-hidden text-ellipsis max-w-full">
+          {file.name}
+        </span>
         
-        {file.size && (
-          <span className="text-vscode-text-muted text-xs truncate overflow-hidden">{file.size}</span>
+        {/* File Size (optional) */}
+        {file.size && !isFolder && (
+          <span className="text-vscode-text-muted text-xs truncate overflow-hidden flex-shrink-0 ml-2">
+            {file.size}
+          </span>
         )}
       </motion.div>
 

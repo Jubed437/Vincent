@@ -72,6 +72,21 @@ const EditorsPanel = () => {
     }
   };
 
+  const loadProject = async () => {
+    try {
+      const result = await electronAPI.selectProjectFolder();
+      if (result.success) {
+        const projectResult = await electronAPI.loadProject(result.path);
+        if (projectResult.success) {
+          const { loadProject: storeLoadProject } = useAppStore.getState();
+          storeLoadProject(projectResult);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading project:', error);
+    }
+  };
+
   useEffect(() => {
     loadEditors();
   }, []);
@@ -114,38 +129,49 @@ const EditorsPanel = () => {
             transition={{ type: "spring", stiffness: 100 }}
           >
             <Card className="p-4 hover:bg-vscode-panel-hover hover:border-vscode-accent/30 transition-all duration-200 group cursor-pointer border border-vscode-border hover:shadow-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-8 h-8">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" fill="#007ACC"/>
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <div className="flex items-center gap-2">
-                      <p className="text-vscode-text text-sm font-semibold group-hover:text-vscode-accent transition-colors truncate overflow-hidden text-ellipsis max-w-full">
-                        Visual Studio Code
-                      </p>
-                      <span className="bg-vscode-accent/20 text-vscode-accent text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
-                        Popular
-                      </span>
-                    </div>
-                    <p className="text-vscode-text-muted text-xs mt-1 truncate overflow-hidden text-ellipsis max-w-full">
-                      Click to open project in VS Code
-                    </p>
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 flex-shrink-0">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" fill="#007ACC"/>
+                  </svg>
                 </div>
-                <Button
-                  variant={project?.path ? "primary" : "secondary"}
-                  size="sm"
-                  icon={ExternalLink}
-                  onClick={openVSCode}
-                  disabled={!project?.path}
-                  className="text-xs font-medium px-4 group-hover:scale-105 transition-transform"
-                  title={!project?.path ? 'Load a project first' : 'Open in VS Code'}
-                >
-                  {project?.path ? 'Open' : 'Load Project'}
-                </Button>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-vscode-text text-sm font-semibold group-hover:text-vscode-accent transition-colors">
+                      Visual Studio Code
+                    </p>
+                    <span className="bg-vscode-accent/20 text-vscode-accent text-xs px-2 py-0.5 rounded-full font-medium">
+                      Popular
+                    </span>
+                  </div>
+                  <p className="text-vscode-text-muted text-xs mt-1">
+                    Click to open project in VS Code
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  {!project?.path && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={loadProject}
+                      className="text-xs font-medium px-3"
+                      title="Select a project folder"
+                    >
+                      Load Project
+                    </Button>
+                  )}
+                  <Button
+                    variant={project?.path ? "primary" : "ghost"}
+                    size="sm"
+                    icon={ExternalLink}
+                    onClick={openVSCode}
+                    disabled={!project?.path}
+                    className="text-xs font-medium px-4 group-hover:scale-105 transition-transform"
+                    title={!project?.path ? 'Load a project first' : 'Open in VS Code'}
+                  >
+                    Open
+                  </Button>
+                </div>
               </div>
             </Card>
           </motion.div>
