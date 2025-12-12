@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const VincentEngine = require('./backend/engine');
 
@@ -34,7 +34,19 @@ function createWindow() {
   ipcMain.on('maximize-window', () => {
     mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
   });
-  ipcMain.on('close-window', () => mainWindow.close());
+  ipcMain.on('close-window', () => {
+    // Clean up any running processes before closing
+    if (vincentEngine) {
+      const projectRunner = require('./backend/modules/projectRunner');
+      projectRunner.stopProject();
+    }
+    mainWindow.close();
+  });
+
+  // Handle external URL opening
+  ipcMain.handle('open:external', (_, url) => {
+    shell.openExternal(url);
+  });
   
 
 

@@ -8,19 +8,95 @@ import {
   Shield, 
   Lightbulb,
   Play,
+  Square,
   CheckCircle,
   Brain,
-  Loader2
+  Loader2,
+  ExternalLink
 } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import electronAPI from '../../utils/electronAPI';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const AIActionsPanel = () => {
-  const { addTerminalOutput, project, setSemanticAnalysis, semanticInsights } = useAppStore();
+  const { 
+    addTerminalOutput, 
+    project, 
+    setSemanticAnalysis, 
+    semanticInsights,
+    isProjectRunning,
+    setProjectRunning,
+    serverURL,
+    setServerURL
+  } = useAppStore();
   const [isRunningDeepAnalysis, setIsRunningDeepAnalysis] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
+
+  // Listen for project URL updates
+  useEffect(() => {
+    const unsubscribe = electronAPI.onProjectURL?.((url) => {
+      setServerURL(url);
+    });
+    return unsubscribe;
+  }, [setServerURL]);
+
+  const startProject = async () => {
+    if (!project?.path) {
+      addTerminalOutput('❌ No project loaded');
+      return;
+    }
+
+    setIsStarting(true);
+    addTerminalOutput('🚀 Starting project...');
+    
+    try {
+      const result = await electronAPI.startProject(project.path);
+      
+      if (result.success) {
+        setProjectRunning(true);
+        addTerminalOutput(`✅ Project started successfully`);
+        if (result.data?.url) {
+          setServerURL(result.data.url);
+        }
+      } else {
+        addTerminalOutput(`❌ Failed to start project: ${result.message}`);
+      }
+    } catch (error) {
+      addTerminalOutput(`❌ Error starting project: ${error.message}`);
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  const stopProject = async () => {
+    setIsStopping(true);
+    addTerminalOutput('🛑 Stopping project...');
+    
+    try {
+      const result = await electronAPI.stopProject();
+      
+      if (result.success) {
+        setProjectRunning(false);
+        setServerURL(null);
+        addTerminalOutput('✅ Project stopped successfully');
+      } else {
+        addTerminalOutput(`❌ Failed to stop project: ${result.message}`);
+      }
+    } catch (error) {
+      addTerminalOutput(`❌ Error stopping project: ${error.message}`);
+    } finally {
+      setIsStopping(false);
+    }
+  };
+
+  const openServer = () => {
+    if (serverURL) {
+      electronAPI.openExternal(serverURL);
+    }
+  };
 
   const aiActions = [
     {
@@ -195,14 +271,85 @@ const AIActionsPanel = () => {
   return (
     <div className="h-full overflow-y-auto scrollbar-thin p-3 space-y-4">
       <h3 className="text-vscode-text font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
-        AI Actions
+        Project Actions
       </h3>
+
+      {/* Project Control */}
+      <Card>
+        <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
+          <Play size={16} className="text-vscode-accent" />
+          Project Control
+        </h4>
+        
+        <div className="space-y-3">
+          {/* Start/Stop Button */}
+          <div className="flex gap-2">
+            {!isProjectRunning ? (
+              <Button
+                variant="primary"
+                icon={isStarting ? Loader2 : Play}
+                onClick={startProject}
+                disabled={isStarting || !project}
+                className={`flex-1 ${isStarting ? 'animate-pulse' : ''}`}
+              >
+                {isStarting ? 'Starting...' : 'Start Project'}
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                icon={isStopping ? Loader2 : Square}
+                onClick={stopProject}
+                disabled={isStopping}
+                className={`flex-1 ${isStopping ? 'animate-pulse' : ''}`}
+              >
+                {isStopping ? 'Stopping...' : 'Stop Project'}
+              </Button>
+            )}
+            
+            {serverURL && (
+              <Button
+                variant="ghost"
+                icon={ExternalLink}
+                onClick={openServer}
+                className="text-blue-400 hover:text-blue-300"
+              >
+                Open
+              </Button>
+            )}
+          </div>
+          
+          {/* Server Status */}
+          {isProjectRunning && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-2 bg-green-900/20 border border-green-700/30 rounded text-xs"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-green-400">Project Running</span>
+              </div>
+              {serverURL && (
+                <div className="mt-1 text-gray-300">
+                  Server: <code className="text-white">{serverURL}</code>
+                </div>
+              )}
+            </motion.div>
+          )}
+          
+          {!project && (
+            <div className="text-xs text-vscode-text-muted bg-vscode-hover p-2 rounded">
+              ⚠️ Load a project first to start development server
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* AI Workflow Progress */}
       <Card>
         <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
           <Bot size={16} className="text-vscode-accent" />
-          AI Workflow Progress
+          AI Analysis Progress
         </h4>
         <div className="space-y-2">
           {workflowSteps.map((step, index) => (

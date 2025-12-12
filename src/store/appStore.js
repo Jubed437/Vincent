@@ -36,6 +36,7 @@ export const useAppStore = create((set, get) => ({
   // Terminal State (kept for compatibility)
   terminalOutput: [],
   isProjectRunning: false,
+  serverURL: null,
   commandHistory: loadCommandHistory(),
   historyIndex: -1,
   
@@ -119,6 +120,8 @@ export const useAppStore = create((set, get) => ({
   }),
   
   setProjectRunning: (running) => set({ isProjectRunning: running }),
+  
+  setServerURL: (url) => set({ serverURL: url }),
   
   setShowUploadModal: (show) => set({ showUploadModal: show }),
   

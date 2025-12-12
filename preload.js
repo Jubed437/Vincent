@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, shell } = require('electron');
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -43,6 +43,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('terminal-output', (event, data) => callback(data));
     return () => ipcRenderer.removeAllListeners('terminal-output');
   },
+  onProjectURL: (callback) => {
+    ipcRenderer.on('project:url', (event, url) => callback(url));
+    return () => ipcRenderer.removeAllListeners('project:url');
+  },
   onProjectLoaded: (callback) => {
     ipcRenderer.on('project-loaded', (event, data) => callback(data));
   },
@@ -58,6 +62,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   findPotentialBugs: (projectPath) => ipcRenderer.invoke('ai-find-bugs', projectPath),
   analyzePerformance: (projectPath) => ipcRenderer.invoke('ai-analyze-performance', projectPath),
   securityAudit: (projectPath) => ipcRenderer.invoke('ai-security-audit', projectPath),
+  
+  // External URLs
+  openExternal: (url) => ipcRenderer.invoke('open:external', url),
   
   // Remove listeners
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)

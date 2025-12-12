@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Terminal as TerminalIcon, X, Maximize2, Minimize2 } from 'lucide-react';
+import { Terminal as TerminalIcon, X, Maximize2, Minimize2, FileText } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import Button from '../ui/Button';
+import TerminalPanel from '../TerminalPanel';
 import electronAPI from '../../utils/electronAPI';
 
 const BottomPanel = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
-  const [panelHeight, setPanelHeight] = useState(200);
+  const [panelHeight, setPanelHeight] = useState(300);
   const [isDragging, setIsDragging] = useState(false);
+  const [activeTab, setActiveTab] = useState('output');
   const [terminals, setTerminals] = useState([{ id: 1, output: [], currentInput: '' }]);
   const [activeTerminal, setActiveTerminal] = useState(1);
   const outputRef = useRef(null);
@@ -161,17 +163,43 @@ const BottomPanel = () => {
       >
         {/* Panel Header */}
         <div className="h-10 flex items-center justify-between px-4 border-b border-gray-800 bg-[#252526]">
-          <div className="flex items-center gap-2">
-            <TerminalIcon size={16} className="text-gray-400" />
-            <span className="text-sm text-gray-300">Terminal</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={createNewTerminal}
-              className="p-1 text-xs ml-2"
-            >
-              +
-            </Button>
+          <div className="flex items-center gap-4">
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveTab('output')}
+                className={`flex items-center gap-2 px-3 py-1 text-sm rounded transition-colors ${
+                  activeTab === 'output' 
+                    ? 'bg-vscode-accent text-white' 
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
+              >
+                <FileText size={14} />
+                Output
+              </button>
+              <button
+                onClick={() => setActiveTab('terminal')}
+                className={`flex items-center gap-2 px-3 py-1 text-sm rounded transition-colors ${
+                  activeTab === 'terminal' 
+                    ? 'bg-vscode-accent text-white' 
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
+              >
+                <TerminalIcon size={14} />
+                Terminal
+              </button>
+            </div>
+            
+            {activeTab === 'terminal' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={createNewTerminal}
+                className="p-1 text-xs"
+              >
+                + New Terminal
+              </Button>
+            )}
           </div>
           
           <div className="flex items-center gap-1">
@@ -185,16 +213,6 @@ const BottomPanel = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setTerminals(prev => prev.map(t => 
-                t.id === activeTerminal ? { ...t, output: [] } : t
-              ))}
-              className="p-1 text-xs"
-            >
-              Clear
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
               icon={X}
               onClick={() => setIsVisible(false)}
               className="p-1"
@@ -202,72 +220,82 @@ const BottomPanel = () => {
           </div>
         </div>
 
-        {/* Terminal Tabs */}
-        <div className="flex bg-gray-800 border-b border-gray-700">
-          {terminals.map(terminal => (
-            <div
-              key={terminal.id}
-              className={`px-3 py-1 text-xs cursor-pointer flex items-center gap-2 ${
-                activeTerminal === terminal.id ? 'bg-black text-white' : 'text-gray-400 hover:text-white'
-              }`}
-              onClick={() => setActiveTerminal(terminal.id)}
-            >
-              Terminal {terminal.id}
-              {terminals.length > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (terminals.length > 1) {
-                      setTerminals(prev => prev.filter(t => t.id !== terminal.id));
-                      if (activeTerminal === terminal.id) {
-                        setActiveTerminal(terminals.find(t => t.id !== terminal.id)?.id || 1);
-                      }
-                    }
-                  }}
-                  className="text-gray-500 hover:text-red-400"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
+        {/* Panel Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'output' ? (
+            <TerminalPanel />
+          ) : (
+            <div className="h-full">
+              {/* Terminal Tabs */}
+              <div className="flex bg-gray-800 border-b border-gray-700">
+                {terminals.map(terminal => (
+                  <div
+                    key={terminal.id}
+                    className={`px-3 py-1 text-xs cursor-pointer flex items-center gap-2 ${
+                      activeTerminal === terminal.id ? 'bg-black text-white' : 'text-gray-400 hover:text-white'
+                    }`}
+                    onClick={() => setActiveTerminal(terminal.id)}
+                  >
+                    Terminal {terminal.id}
+                    {terminals.length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (terminals.length > 1) {
+                            setTerminals(prev => prev.filter(t => t.id !== terminal.id));
+                            if (activeTerminal === terminal.id) {
+                              setActiveTerminal(terminals.find(t => t.id !== terminal.id)?.id || 1);
+                            }
+                          }
+                        }}
+                        className="text-gray-500 hover:text-red-400"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
 
-        {/* Terminal Content */}
-        <div 
-          ref={outputRef}
-          className="flex-1 overflow-y-auto p-3 font-mono text-sm bg-black text-white cursor-text"
-          tabIndex={0}
-          onKeyDown={handleKeyDown}
-          onClick={() => inputRef.current?.focus()}
-        >
-          {output.map((line) => (
-            <div 
-              key={line.id} 
-              className={`whitespace-pre-wrap ${
-                line.type === 'error' ? 'text-red-400' : 
-                line.type === 'command' ? 'text-white' : 
-                line.type === 'system' ? 'text-gray-300' :
-                'text-gray-200'
-              }`}
-            >
-              {line.text}
+              {/* Terminal Content */}
+              <div 
+                ref={outputRef}
+                className="flex-1 overflow-y-auto p-3 font-mono text-sm bg-black text-white cursor-text"
+                tabIndex={0}
+                onKeyDown={handleKeyDown}
+                onClick={() => inputRef.current?.focus()}
+                style={{ height: 'calc(100% - 32px)' }}
+              >
+                {output.map((line) => (
+                  <div 
+                    key={line.id} 
+                    className={`whitespace-pre-wrap ${
+                      line.type === 'error' ? 'text-red-400' : 
+                      line.type === 'command' ? 'text-white' : 
+                      line.type === 'system' ? 'text-gray-300' :
+                      'text-gray-200'
+                    }`}
+                  >
+                    {line.text}
+                  </div>
+                ))}
+                
+                {/* Current prompt line */}
+                <div className="flex items-center">
+                  <span className="text-blue-400 font-bold">PS {project?.path || 'C:\\'}&gt;</span>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={currentInput}
+                    onChange={(e) => setCurrentInput(e.target.value)}
+                    className="flex-1 bg-transparent text-white outline-none border-none ml-1"
+                    style={{ caretColor: 'white' }}
+                    autoFocus
+                  />
+                </div>
+              </div>
             </div>
-          ))}
-          
-          {/* Current prompt line */}
-          <div className="flex items-center">
-            <span className="text-blue-400 font-bold">PS {project?.path || 'C:\\'}&gt;</span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={currentInput}
-              onChange={(e) => setCurrentInput(e.target.value)}
-              className="flex-1 bg-transparent text-white outline-none border-none ml-1"
-              style={{ caretColor: 'white' }}
-              autoFocus
-            />
-          </div>
+          )}
         </div>
       </motion.div>
     </div>

@@ -206,6 +206,18 @@ class ElectronAPI {
     window.electronAPI.onDependenciesInstalled(callback);
   }
 
+  onProjectURL(callback) {
+    return window.electronAPI.onProjectURL?.(callback);
+  }
+
+  openExternal(url) {
+    if (window.electronAPI?.openExternal) {
+      return window.electronAPI.openExternal(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  }
+
   // Window Controls
   minimizeWindow() {
     window.electronAPI.minimizeWindow();

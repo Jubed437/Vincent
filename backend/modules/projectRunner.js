@@ -6,11 +6,19 @@ class ProjectRunner {
   constructor() {
     this.activeProcess = null;
     this.projectPath = null;
+    this.serverUrl = null;
+    this.onOutputCallback = null;
+    this.onUrlDetectedCallback = null;
   }
 
-  async startProject(projectPath, onOutput, projectId = null) {
+  async startProject(projectPath, onOutput, onUrlDetected = null) {
     return new Promise((resolve) => {
       try {
+        // Stop any existing process
+        if (this.activeProcess) {
+          this.stopProject();
+        }
+
         const packageJson = this.readPackageJson(projectPath);
         if (!packageJson) {
           return resolve({
@@ -23,68 +31,103 @@ class ProjectRunner {
         if (!script) {
           return resolve({
             success: false,
-            message: 'No suitable start script found'
+            message: 'No suitable start script found. Available scripts: ' + Object.keys(packageJson.scripts || {}).join(', ')
           });
         }
+
+        this.onOutputCallback = onOutput;
+        this.onUrlDetectedCallback = onUrlDetected;
+        this.projectPath = projectPath;
+        this.serverUrl = null;
 
         onOutput?.(`🚀 Starting project with: ${script.command}`);
+        onOutput?.(`📁 Working directory: ${projectPath}`);
         
-        this.projectPath = projectPath;
-        this.activeProcess = spawn('npm', ['run', script.name], {
+        // Determine package manager and command
+        const { manager, command } = this.determinePackageManager(projectPath, script.name);
+        
+        this.activeProcess = spawn(manager, command, {
           cwd: projectPath,
           shell: true,
-          stdio: ['pipe', 'pipe', 'pipe']
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: { ...process.env, FORCE_COLOR: '1' }
         });
-
-        // Save run log to database
-        let runId = null;
-        if (projectId) {
-          const db = require('../db');
-          const runResult = db.saveRunLog(projectId, {
-            command: `npm run ${script.name}`,
-            status: 'starting',
-            output: '',
-            pid: this.activeProcess.pid
-          });
-          runId = runResult.data?.id;
-        }
 
         let hasStarted = false;
+        let outputBuffer = '';
 
+        // Handle stdout with line buffering
         this.activeProcess.stdout.on('data', (data) => {
           const text = data.toString();
-          onOutput?.(text);
+          outputBuffer += text;
           
-          // Detect server start
-          if (!hasStarted && this.detectServerStart(text)) {
-            hasStarted = true;
-            const url = this.extractUrl(text);
-            resolve({
-              success: true,
-              message: 'Project started successfully',
-              data: { 
-                url,
-                script: script.name,
-                pid: this.activeProcess.pid
+          // Process complete lines
+          const lines = outputBuffer.split('\n');
+          outputBuffer = lines.pop() || ''; // Keep incomplete line
+          
+          lines.forEach(line => {
+            if (line.trim()) {
+              onOutput?.(line);
+              
+              // Detect server start and URL
+              if (!hasStarted && this.detectServerStart(line)) {
+                hasStarted = true;
+                const url = this.extractUrl(line);
+                if (url) {
+                  this.serverUrl = url;
+                  onUrlDetected?.(url);
+                }
+                
+                resolve({
+                  success: true,
+                  message: 'Project started successfully',
+                  data: { 
+                    url,
+                    script: script.name,
+                    pid: this.activeProcess.pid,
+                    command: `${manager} ${command.join(' ')}`
+                  }
+                });
               }
-            });
-          }
+            }
+          });
         });
 
+        // Handle stderr with line buffering
         this.activeProcess.stderr.on('data', (data) => {
           const text = data.toString();
-          onOutput?.(text);
+          const lines = text.split('\n').filter(line => line.trim());
+          
+          lines.forEach(line => {
+            onOutput?.(line);
+            
+            // Some servers output URL to stderr
+            if (!hasStarted && this.detectServerStart(line)) {
+              hasStarted = true;
+              const url = this.extractUrl(line);
+              if (url) {
+                this.serverUrl = url;
+                onUrlDetected?.(url);
+              }
+              
+              resolve({
+                success: true,
+                message: 'Project started successfully',
+                data: { 
+                  url,
+                  script: script.name,
+                  pid: this.activeProcess.pid,
+                  command: `${manager} ${command.join(' ')}`
+                }
+              });
+            }
+          });
         });
 
         this.activeProcess.on('close', (code) => {
           this.activeProcess = null;
-          onOutput?.(`🛑 Project stopped with code ${code}`);
-          
-          // Update run status in database
-          if (runId && projectId) {
-            const db = require('../db');
-            db.updateRunStatus(runId, code === 0 ? 'stopped' : 'failed', `Exit code: ${code}`);
-          }
+          this.serverUrl = null;
+          onOutput?.(`🛑 Project stopped with exit code ${code}`);
           
           if (!hasStarted) {
             resolve({
@@ -96,7 +139,9 @@ class ProjectRunner {
 
         this.activeProcess.on('error', (error) => {
           this.activeProcess = null;
+          this.serverUrl = null;
           onOutput?.(`❌ Error: ${error.message}`);
+          
           if (!hasStarted) {
             resolve({
               success: false,
@@ -105,19 +150,21 @@ class ProjectRunner {
           }
         });
 
-        // Timeout fallback
+        // Timeout fallback (increased to 15 seconds)
         setTimeout(() => {
-          if (!hasStarted) {
+          if (!hasStarted && this.activeProcess) {
+            hasStarted = true;
             resolve({
               success: true,
-              message: 'Project started (no URL detected)',
+              message: 'Project started (server URL not detected)',
               data: { 
                 script: script.name,
-                pid: this.activeProcess?.pid
+                pid: this.activeProcess.pid,
+                command: `${manager} ${command.join(' ')}`
               }
             });
           }
-        }, 10000);
+        }, 15000);
 
       } catch (error) {
         resolve({
@@ -130,12 +177,48 @@ class ProjectRunner {
 
   stopProject() {
     if (this.activeProcess) {
-      this.activeProcess.kill('SIGTERM');
-      this.activeProcess = null;
-      return {
-        success: true,
-        message: 'Project stopped successfully'
-      };
+      const pid = this.activeProcess.pid;
+      
+      try {
+        // Kill the process tree synchronously on Windows
+        const { execSync } = require('child_process');
+        execSync(`taskkill /pid ${pid} /T /F`, { stdio: 'ignore' });
+        
+        // Also kill by port if we have a server URL
+        if (this.serverUrl) {
+          const portMatch = this.serverUrl.match(/:([0-9]+)/);
+          if (portMatch) {
+            this.killProcessByPort(portMatch[1]);
+          }
+        }
+        
+        this.activeProcess = null;
+        this.serverUrl = null;
+        this.onOutputCallback?.('🛑 Project stopped');
+        
+        return {
+          success: true,
+          message: 'Project stopped successfully'
+        };
+      } catch (error) {
+        // Fallback: try to kill directly
+        try {
+          this.activeProcess?.kill('SIGKILL');
+          this.activeProcess = null;
+          this.serverUrl = null;
+          this.onOutputCallback?.('🛑 Project stopped (forced)');
+          
+          return {
+            success: true,
+            message: 'Project stopped (forced)'
+          };
+        } catch (killError) {
+          return {
+            success: false,
+            message: `Failed to stop project: ${killError.message}`
+          };
+        }
+      }
     }
     return {
       success: false,
@@ -155,8 +238,8 @@ class ProjectRunner {
   determineStartScript(packageJson) {
     const scripts = packageJson.scripts || {};
     
-    // Priority order for start scripts
-    const priorities = ['dev', 'start', 'serve', 'build'];
+    // Priority order for start scripts (dev scripts first)
+    const priorities = ['dev', 'start', 'serve', 'preview', 'develop'];
     
     for (const scriptName of priorities) {
       if (scripts[scriptName]) {
@@ -170,6 +253,24 @@ class ProjectRunner {
     return null;
   }
 
+  determinePackageManager(projectPath, scriptName) {
+    // Check for lock files to determine package manager
+    const lockFiles = {
+      'pnpm-lock.yaml': { manager: 'pnpm', command: ['run', scriptName] },
+      'yarn.lock': { manager: 'yarn', command: [scriptName] },
+      'package-lock.json': { manager: 'npm', command: ['run', scriptName] }
+    };
+
+    for (const [lockFile, config] of Object.entries(lockFiles)) {
+      if (fs.existsSync(path.join(projectPath, lockFile))) {
+        return config;
+      }
+    }
+
+    // Default to npm
+    return { manager: 'npm', command: ['run', scriptName] };
+  }
+
   detectServerStart(output) {
     const indicators = [
       'Local:',
@@ -177,23 +278,46 @@ class ProjectRunner {
       'Server running',
       'Development server',
       'ready on',
-      'started on'
+      'started on',
+      'running at',
+      'available on',
+      'listening on',
+      'server started',
+      'dev server running',
+      'compiled successfully',
+      'webpack compiled',
+      'vite.*ready',
+      'next.*ready',
+      'react.*compiled'
     ];
     
-    return indicators.some(indicator => 
-      output.toLowerCase().includes(indicator.toLowerCase())
-    );
+    const lowerOutput = output.toLowerCase();
+    return indicators.some(indicator => {
+      if (indicator.includes('.*')) {
+        // Handle regex patterns
+        const regex = new RegExp(indicator, 'i');
+        return regex.test(output);
+      }
+      return lowerOutput.includes(indicator.toLowerCase());
+    });
   }
 
   extractUrl(output) {
-    const urlRegex = /https?:\/\/[^\s]+/g;
-    const matches = output.match(urlRegex);
+    // Clean ANSI color codes first
+    const cleanOutput = output.replace(/\u001b\[.*?m/g, '').trim();
+    
+    // Robust URL regex for localhost variants
+    const urlRegex = /(https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0):\d+\/?)/i;
+    const matches = cleanOutput.match(urlRegex);
+    
     if (matches) {
-      return matches[0];
+      return matches[1].replace(/\/$/, ''); // Remove trailing slash
     }
     
-    const localhostRegex = /localhost:(\d+)/;
-    const portMatch = output.match(localhostRegex);
+    // Fallback: extract port and construct URL
+    const portRegex = /(?:localhost|127\.0\.0\.1|0\.0\.0\.0):(\d+)/i;
+    const portMatch = cleanOutput.match(portRegex);
+    
     if (portMatch) {
       return `http://localhost:${portMatch[1]}`;
     }
@@ -201,11 +325,34 @@ class ProjectRunner {
     return null;
   }
 
+  killProcessByPort(port) {
+    try {
+      const { execSync } = require('child_process');
+      // Find process using the port
+      const result = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8' });
+      const lines = result.split('\n');
+      
+      for (const line of lines) {
+        if (line.includes('LISTENING')) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== '0') {
+            execSync(`taskkill /pid ${pid} /F`, { stdio: 'ignore' });
+            this.onOutputCallback?.(`🛑 Killed process ${pid} on port ${port}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.log('No process found on port', port);
+    }
+  }
+
   getStatus() {
     return {
       isRunning: !!this.activeProcess,
       pid: this.activeProcess?.pid,
-      projectPath: this.projectPath
+      projectPath: this.projectPath,
+      serverUrl: this.serverUrl
     };
   }
 }

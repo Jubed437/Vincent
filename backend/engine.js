@@ -316,17 +316,31 @@ class VincentEngine {
     try {
       const result = await projectRunner.startProject(
         projectPath,
-        (output) => terminalManager.addOutput(output)
+        (output) => {
+          // Send output to terminal manager and directly to renderer
+          terminalManager.addOutput(output);
+          this.mainWindow.webContents.send('terminal:output', {
+            text: output,
+            timestamp: new Date().toISOString(),
+            type: 'output'
+          });
+        },
+        (url) => {
+          // Send detected URL to renderer
+          terminalManager.logSuccess(`Server running at: ${url}`);
+          this.mainWindow.webContents.send('project:url', url);
+        }
       );
-
-      if (result.success && result.data?.url) {
-        terminalManager.logSuccess(`Server running at: ${result.data.url}`);
-      }
 
       return result;
     } catch (error) {
       const errorMsg = `Failed to start project: ${error.message}`;
       terminalManager.logError(errorMsg);
+      this.mainWindow.webContents.send('terminal:output', {
+        text: errorMsg,
+        timestamp: new Date().toISOString(),
+        type: 'error'
+      });
       return {
         success: false,
         message: errorMsg

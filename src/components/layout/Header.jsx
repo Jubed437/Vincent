@@ -1,7 +1,8 @@
-import { Upload, Search, Download, Play, Square, Settings, Minus, Maximize2, X } from 'lucide-react';
+import { Upload, Search, Download, Play, Square, Settings, Minus, Maximize2, X, ExternalLink } from 'lucide-react';
 import Button from '../ui/Button';
 import { useAppStore } from '../../store/appStore';
 import electronAPI from '../../utils/electronAPI';
+import { useState, useEffect } from 'react';
 
 const Header = () => {
   const { 
@@ -9,8 +10,22 @@ const Header = () => {
     setProjectRunning, 
     setShowUploadModal,
     loadProject,
-    project
+    project,
+    serverURL,
+    setServerURL,
+    addTerminalOutput
   } = useAppStore();
+  
+  const [isStarting, setIsStarting] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
+
+  // Listen for project URL updates
+  useEffect(() => {
+    const unsubscribe = electronAPI.onProjectURL?.((url) => {
+      setServerURL(url);
+    });
+    return unsubscribe;
+  }, [setServerURL]);
 
   const handleUpload = async () => {
     try {
@@ -60,28 +75,50 @@ const Header = () => {
   const handleStartProject = async () => {
     try {
       if (isProjectRunning) {
+        setIsStopping(true);
+        addTerminalOutput('🛑 Stopping project...');
+        
         const result = await electronAPI.stopProject();
         if (result.success) {
           setProjectRunning(false);
-          console.log('Project stopped');
+          setServerURL(null);
+          addTerminalOutput('✅ Project stopped successfully');
+        } else {
+          addTerminalOutput(`❌ Failed to stop project: ${result.message}`);
         }
+        setIsStopping(false);
       } else {
         if (!project?.path) {
-          console.error('No project loaded');
+          addTerminalOutput('❌ No project loaded');
           alert('Please load a project first');
           return;
         }
         
+        setIsStarting(true);
+        addTerminalOutput('🚀 Starting project...');
+        
         const result = await electronAPI.startProject(project.path);
         if (result.success) {
           setProjectRunning(true);
-          console.log('Project started');
+          addTerminalOutput('✅ Project started successfully');
+          if (result.data?.url) {
+            setServerURL(result.data.url);
+          }
         } else {
-          console.error('Failed to start project:', result.message);
+          addTerminalOutput(`❌ Failed to start project: ${result.message}`);
         }
+        setIsStarting(false);
       }
     } catch (error) {
-      console.error('Project control error:', error);
+      addTerminalOutput(`❌ Error: ${error.message}`);
+      setIsStarting(false);
+      setIsStopping(false);
+    }
+  };
+
+  const openServer = () => {
+    if (serverURL) {
+      electronAPI.openExternal(serverURL);
     }
   };
 
@@ -129,9 +166,22 @@ const Header = () => {
           size="sm"
           icon={isProjectRunning ? Square : Play}
           onClick={handleStartProject}
+          disabled={isStarting || isStopping}
         >
-          {isProjectRunning ? 'Stop' : 'Start'} Project
+          {isStarting ? 'Starting...' : isStopping ? 'Stopping...' : isProjectRunning ? 'Stop' : 'Start'} Project
         </Button>
+        
+        {serverURL && (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={ExternalLink}
+            onClick={openServer}
+            className="text-blue-400 hover:text-blue-300"
+          >
+            Open Server
+          </Button>
+        )}
       </div>
 
       {/* Right side - Window Controls */}
