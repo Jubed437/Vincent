@@ -50,25 +50,34 @@ function createWindow() {
   
 
 
-  // Show window when ready to prevent white/black screen
-  mainWindow.once('ready-to-show', () => {
-    console.log('Window ready to show');
-    mainWindow.show();
-    mainWindow.maximize();
-  });
-
   // Load the app
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:5173').catch(err => {
+    mainWindow.loadURL('http://localhost:5173').then(() => {
+      console.log('Dev server loaded successfully');
+      mainWindow.show();
+      mainWindow.maximize();
+    }).catch(err => {
       console.error('Failed to load dev server:', err);
-      // Retry after a short delay
+      // Show window anyway and retry
+      mainWindow.show();
       setTimeout(() => {
         mainWindow.loadURL('http://localhost:5173');
-      }, 1000);
+      }, 2000);
     });
   } else {
-    mainWindow.loadFile('dist/index.html');
+    mainWindow.loadFile('dist/index.html').then(() => {
+      mainWindow.show();
+      mainWindow.maximize();
+    });
   }
+
+  // Fallback: show window after 3 seconds if not shown yet
+  setTimeout(() => {
+    if (!mainWindow.isVisible()) {
+      console.log('Fallback: showing window');
+      mainWindow.show();
+    }
+  }, 3000);
 }
 
 app.whenReady().then(() => {

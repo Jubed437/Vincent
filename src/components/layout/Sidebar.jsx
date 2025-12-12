@@ -5,7 +5,8 @@ import {
   FileText, 
   Package, 
   Bot,
-  Code2
+  Code2,
+  Search
 } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { useUIStore } from '../../store/uiStore';
@@ -15,6 +16,7 @@ import ProjectSummary from '../panels/ProjectSummary';
 import DependenciesPanel from '../panels/DependenciesPanel';
 import AIActionsPanel from '../panels/AIActionsPanel';
 import EditorsPanel from '../panels/EditorsPanel';
+import CodeSearchPanel from '../panels/CodeSearchPanel';
 
 const Sidebar = () => {
   const { activeView, setActiveView, project } = useAppStore();
@@ -75,6 +77,12 @@ const Sidebar = () => {
       disabled: !projectLoaded
     },
     { 
+      id: 'search', 
+      label: 'Code Search', 
+      icon: Search,
+      disabled: !projectLoaded
+    },
+    { 
       id: 'editors', 
       label: 'Editors', 
       icon: Code2,
@@ -96,6 +104,8 @@ const Sidebar = () => {
         return <ProjectSummary />;
       case 'dependencies':
         return <DependenciesPanel />;
+      case 'search':
+        return <CodeSearchPanel />;
       case 'editors':
         return <EditorsPanel />;
       case 'actions':

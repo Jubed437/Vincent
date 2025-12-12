@@ -7,6 +7,9 @@ const terminalManager = require('./modules/terminalManager');
 const aiAnalyzer = require('./modules/aiAnalyzer');
 const aiAgentLLM = require('./modules/aiAgentLLM');
 const editorManager = require('./modules/editorManager');
+const codeLinter = require('./modules/codeLinter');
+const vulnerabilityScanner = require('./modules/vulnerabilityScanner');
+const codeSearch = require('./modules/codeSearch');
 
 class VincentEngine {
   constructor(mainWindow) {
@@ -168,6 +171,41 @@ class VincentEngine {
         };
       }
       return staticResult;
+    });
+
+    // Code Linting
+    ipcMain.handle('lint-file', async (event, filePath) => {
+      return await codeLinter.lintFile(filePath);
+    });
+
+    ipcMain.handle('lint-project', async (event, projectPath) => {
+      return await codeLinter.lintProject(projectPath);
+    });
+
+    // Vulnerability Scanning
+    ipcMain.handle('scan-vulnerabilities', async (event, projectPath) => {
+      return await vulnerabilityScanner.scanDependencies(projectPath);
+    });
+
+    ipcMain.handle('scan-package-json', async (event, projectPath) => {
+      return await vulnerabilityScanner.scanPackageJson(projectPath);
+    });
+
+    // Code Search
+    ipcMain.handle('index-project', async (event, projectPath) => {
+      return await codeSearch.indexProject(projectPath);
+    });
+
+    ipcMain.handle('search-code', async (event, query, options) => {
+      return codeSearch.searchCode(query, options);
+    });
+
+    ipcMain.handle('search-files', async (event, filename) => {
+      return codeSearch.searchFiles(filename);
+    });
+
+    ipcMain.handle('get-search-stats', async () => {
+      return { success: true, data: codeSearch.getStats() };
     });
   }
 

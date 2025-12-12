@@ -29,11 +29,20 @@ const AIActionsPanel = () => {
     isProjectRunning,
     setProjectRunning,
     serverURL,
-    setServerURL
+    setServerURL,
+    techStack,
+    dependencies
   } = useAppStore();
   const [isRunningDeepAnalysis, setIsRunningDeepAnalysis] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
+  const [analysisState, setAnalysisState] = useState({
+    structureAnalyzed: false,
+    dependenciesDetected: false,
+    techStackIdentified: false,
+    securityScanned: false,
+    performanceAnalyzed: false
+  });
 
   // Listen for project URL updates
   useEffect(() => {
@@ -111,18 +120,31 @@ const AIActionsPanel = () => {
           return;
         }
         
-        addTerminalOutput('🤖 AI: Analyzing project structure...');
-        const result = await electronAPI.analyzeProjectStructure(project.path);
-        if (result.success) {
-          addTerminalOutput(`✅ AI: Analysis complete. Score: ${result.data.score}/100`);
-          result.data.issues.forEach(issue => {
-            addTerminalOutput(`❌ Issue: ${issue}`);
-          });
-          result.data.suggestions.forEach(suggestion => {
-            addTerminalOutput(`💡 Suggestion: ${suggestion}`);
-          });
-        } else {
-          addTerminalOutput(`❌ AI: Analysis failed: ${result.message}`);
+        try {
+          addTerminalOutput('📁 Analyzing project structure...');
+          const result = await electronAPI.analyzeProjectStructure(project.path);
+          if (result && result.success) {
+            setAnalysisState(prev => ({ ...prev, structureAnalyzed: true }));
+            addTerminalOutput(`✅ Structure analysis complete. Score: ${result.data?.score || 0}/100`);
+            if (result.data?.issues && result.data.issues.length > 0) {
+              result.data.issues.forEach(issue => {
+                addTerminalOutput(`❌ Issue: ${issue}`);
+              });
+            }
+            if (result.data?.suggestions && result.data.suggestions.length > 0) {
+              result.data.suggestions.forEach(suggestion => {
+                addTerminalOutput(`💡 Suggestion: ${suggestion}`);
+              });
+            }
+            if (result.data?.issues?.length === 0 && result.data?.suggestions?.length === 0) {
+              addTerminalOutput('✅ No structural issues found');
+            }
+          } else {
+            addTerminalOutput(`❌ Structure analysis failed: ${result?.message || 'Unknown error'}`);
+          }
+        } catch (error) {
+          addTerminalOutput(`❌ Error: ${error.message}`);
+          console.error('Structure analysis error:', error);
         }
       }
     },
@@ -138,15 +160,29 @@ const AIActionsPanel = () => {
           return;
         }
         
-        addTerminalOutput('🤖 AI: Scanning for potential bugs...');
-        const result = await electronAPI.findPotentialBugs(project.path);
-        if (result.success) {
-          addTerminalOutput(`✅ AI: Scanned ${result.data.totalFiles} files, found ${result.data.bugs.length} issues`);
-          result.data.bugs.forEach(bug => {
-            addTerminalOutput(`🐛 ${bug.file}:${bug.line} - ${bug.issue}`);
-          });
-        } else {
-          addTerminalOutput(`❌ AI: Bug scan failed: ${result.message}`);
+        try {
+          addTerminalOutput('🐛 Scanning for potential bugs...');
+          const result = await electronAPI.findPotentialBugs(project.path);
+          if (result && result.success) {
+            const { bugs, totalFiles } = result.data || {};
+            addTerminalOutput(`✅ Scanned ${totalFiles || 0} files`);
+            if (bugs && bugs.length > 0) {
+              addTerminalOutput(`🐛 Found ${bugs.length} potential issues`);
+              bugs.slice(0, 5).forEach(bug => {
+                addTerminalOutput(`⚠️ ${bug.file}:${bug.line} - ${bug.issue} (${bug.severity})`);
+              });
+              if (bugs.length > 5) {
+                addTerminalOutput(`... and ${bugs.length - 5} more issues`);
+              }
+            } else {
+              addTerminalOutput('✅ No potential bugs found');
+            }
+          } else {
+            addTerminalOutput(`❌ Bug scan failed: ${result?.message || 'Unknown error'}`);
+          }
+        } catch (error) {
+          addTerminalOutput(`❌ Error: ${error.message}`);
+          console.error('Bug scan error:', error);
         }
       }
     },
@@ -162,15 +198,26 @@ const AIActionsPanel = () => {
           return;
         }
         
-        addTerminalOutput('🤖 AI: Analyzing performance patterns...');
-        const result = await electronAPI.analyzePerformance(project.path);
-        if (result.success) {
-          addTerminalOutput(`✅ AI: Found ${result.data.suggestions.length} performance opportunities`);
-          result.data.suggestions.forEach(suggestion => {
-            addTerminalOutput(`⚡ ${suggestion.issue}: ${suggestion.suggestion}`);
-          });
-        } else {
-          addTerminalOutput(`❌ AI: Performance analysis failed: ${result.message}`);
+        try {
+          addTerminalOutput('⚡ Analyzing performance patterns...');
+          const result = await electronAPI.analyzePerformance(project.path);
+          if (result && result.success) {
+            setAnalysisState(prev => ({ ...prev, performanceAnalyzed: true }));
+            const { suggestions } = result.data || {};
+            if (suggestions && suggestions.length > 0) {
+              addTerminalOutput(`✅ Found ${suggestions.length} performance opportunities`);
+              suggestions.forEach(suggestion => {
+                addTerminalOutput(`⚡ ${suggestion.issue}: ${suggestion.suggestion}`);
+              });
+            } else {
+              addTerminalOutput('✅ No performance issues detected');
+            }
+          } else {
+            addTerminalOutput(`❌ Performance analysis failed: ${result?.message || 'Unknown error'}`);
+          }
+        } catch (error) {
+          addTerminalOutput(`❌ Error: ${error.message}`);
+          console.error('Performance analysis error:', error);
         }
       }
     },
@@ -186,15 +233,27 @@ const AIActionsPanel = () => {
           return;
         }
         
-        addTerminalOutput('🤖 AI: Running security audit...');
-        const result = await electronAPI.securityAudit(project.path);
-        if (result.success) {
-          addTerminalOutput(`✅ AI: Security scan complete. Risk level: ${result.data.riskLevel}`);
-          result.data.issues.forEach(issue => {
-            addTerminalOutput(`🛡️ ${issue.severity.toUpperCase()}: ${issue.issue} - ${issue.fix}`);
-          });
-        } else {
-          addTerminalOutput(`❌ AI: Security audit failed: ${result.message}`);
+        try {
+          addTerminalOutput('🛡️ Running security audit...');
+          const result = await electronAPI.securityAudit(project.path);
+          if (result && result.success) {
+            setAnalysisState(prev => ({ ...prev, securityScanned: true }));
+            const { issues, riskLevel } = result.data || {};
+            addTerminalOutput(`✅ Security audit complete. Risk level: ${riskLevel || 'unknown'}`);
+            if (issues && issues.length > 0) {
+              addTerminalOutput(`📊 Found ${issues.length} security issues`);
+              issues.forEach(issue => {
+                addTerminalOutput(`🛡️ ${issue.severity?.toUpperCase()}: ${issue.issue} - ${issue.fix}`);
+              });
+            } else {
+              addTerminalOutput('✅ No security issues found');
+            }
+          } else {
+            addTerminalOutput(`❌ Security audit failed: ${result?.message || 'Unknown error'}`);
+          }
+        } catch (error) {
+          addTerminalOutput(`❌ Error: ${error.message}`);
+          console.error('Security audit error:', error);
         }
       }
     },
@@ -210,11 +269,27 @@ const AIActionsPanel = () => {
           return;
         }
         
-        addTerminalOutput('🤖 AI: Generating improvement suggestions...');
-        const result = await electronAPI.analyzeProjectStructure(project.path);
-        if (result.success) {
-          addTerminalOutput(`✅ AI: Generated ${result.data.suggestions?.length || 0} suggestions`);
+        addTerminalOutput('💡 Analyzing code quality...');
+        const [lintResult, structureResult] = await Promise.all([
+          electronAPI.lintProject(project.path),
+          electronAPI.analyzeProjectStructure(project.path)
+        ]);
+        
+        let suggestions = 0;
+        if (lintResult.success) {
+          const { summary } = lintResult.data;
+          if (summary.totalIssues > 0) {
+            addTerminalOutput(`📝 Fix ${summary.totalErrors} ESLint errors and ${summary.totalWarnings} warnings`);
+            suggestions++;
+          }
         }
+        
+        if (structureResult.success) {
+          addTerminalOutput(`📁 Project structure analysis complete`);
+          suggestions++;
+        }
+        
+        addTerminalOutput(`✅ Generated ${suggestions} improvement categories`);
       }
     },
     {
@@ -223,11 +298,54 @@ const AIActionsPanel = () => {
       description: 'Auto-generate unit tests for your components',
       icon: CheckCircle,
       color: 'text-cyan-400',
-      action: () => {
-        addTerminalOutput('🤖 AI: Generating unit tests...');
-        setTimeout(() => {
-          addTerminalOutput('✅ AI: Generated tests for 12 components.');
-        }, 3500);
+      action: async () => {
+        if (!project?.path) {
+          addTerminalOutput('❌ No project loaded');
+          return;
+        }
+        
+        addTerminalOutput('🧪 Scanning for testable files...');
+        const searchResult = await electronAPI.indexProject(project.path);
+        if (searchResult.success) {
+          const statsResult = await electronAPI.getSearchStats();
+          if (statsResult.success) {
+            const { extensions } = statsResult.data;
+            const testableFiles = extensions.filter(ext => ['.js', '.jsx', '.ts', '.tsx'].includes(ext)).length;
+            addTerminalOutput(`📄 Found ${testableFiles} testable file types`);
+            addTerminalOutput(`✅ Test generation analysis complete`);
+            addTerminalOutput(`💡 Recommend adding Jest/Vitest configuration`);
+          }
+        } else {
+          addTerminalOutput('❌ Failed to analyze project for testing');
+        }
+      }
+    },
+    {
+      id: 'scan-vulnerabilities',
+      title: 'Vulnerability Scan',
+      description: 'Scan dependencies for security vulnerabilities',
+      icon: Shield,
+      color: 'text-red-400',
+      action: async () => {
+        if (!project?.path) {
+          addTerminalOutput('❌ No project loaded');
+          return;
+        }
+        
+        addTerminalOutput('🔍 Scanning for vulnerabilities...');
+        const result = await electronAPI.scanVulnerabilities(project.path);
+        if (result.success) {
+          setAnalysisState(prev => ({ ...prev, securityScanned: true }));
+          const { summary } = result.data;
+          addTerminalOutput(`✅ Vulnerability scan complete`);
+          addTerminalOutput(`📊 Found ${summary.total} vulnerabilities`);
+          if (summary.critical > 0) addTerminalOutput(`⚠️ Critical: ${summary.critical}`);
+          if (summary.high > 0) addTerminalOutput(`🔴 High: ${summary.high}`);
+          if (summary.moderate > 0) addTerminalOutput(`🟡 Moderate: ${summary.moderate}`);
+          if (summary.low > 0) addTerminalOutput(`🟢 Low: ${summary.low}`);
+        } else {
+          addTerminalOutput(`❌ Vulnerability scan failed: ${result.message}`);
+        }
       }
     }
   ];
@@ -261,12 +379,23 @@ const AIActionsPanel = () => {
 
   const workflowSteps = [
     { id: 1, name: 'Project Upload', status: project ? 'completed' : 'pending' },
-    { id: 2, name: 'Structure Analysis', status: project ? 'completed' : 'pending' },
-    { id: 3, name: 'Dependency Resolution', status: project ? 'completed' : 'pending' },
-    { id: 4, name: 'Semantic Analysis', status: semanticInsights ? 'completed' : 'pending' },
-    { id: 5, name: 'Security Scan', status: 'pending' },
-    { id: 6, name: 'Performance Analysis', status: 'pending' }
+    { id: 2, name: 'Project Structure Analysis', status: analysisState.structureAnalyzed ? 'completed' : 'pending' },
+    { id: 3, name: 'Dependency Detection', status: dependencies?.length > 0 ? 'completed' : 'pending' },
+    { id: 4, name: 'Tech Stack Identification', status: techStack?.length > 0 ? 'completed' : 'pending' },
+    { id: 5, name: 'Semantic Analysis', status: semanticInsights ? 'completed' : 'pending' },
+    { id: 6, name: 'Security Scan', status: analysisState.securityScanned ? 'completed' : 'pending' },
+    { id: 7, name: 'Performance Analysis', status: analysisState.performanceAnalyzed ? 'completed' : 'pending' }
   ];
+
+  // Update analysis state when project loads
+  useEffect(() => {
+    if (project) {
+      setAnalysisState(prev => ({
+        ...prev,
+        structureAnalyzed: true
+      }));
+    }
+  }, [project]);
 
   return (
     <div className="h-full overflow-y-auto scrollbar-thin p-3 space-y-4">
@@ -452,21 +581,32 @@ const AIActionsPanel = () => {
                 return;
               }
               
-              addTerminalOutput('🤖 AI: Running full project analysis...');
+              addTerminalOutput('🔍 Running comprehensive analysis...');
               
-              // Run all analyses
-              const [structure, bugs, performance, security] = await Promise.all([
-                electronAPI.analyzeProjectStructure(project.path),
-                electronAPI.findPotentialBugs(project.path),
-                electronAPI.analyzePerformance(project.path),
-                electronAPI.securityAudit(project.path)
+              // Run all available analyses
+              const [linting, security, indexing] = await Promise.all([
+                electronAPI.lintProject(project.path),
+                electronAPI.scanVulnerabilities(project.path),
+                electronAPI.indexProject(project.path)
               ]);
               
-              addTerminalOutput('✅ AI: Full analysis complete');
-              addTerminalOutput(`Structure Score: ${structure.data?.score || 0}/100`);
-              addTerminalOutput(`Bugs Found: ${bugs.data?.bugs?.length || 0}`);
-              addTerminalOutput(`Performance Issues: ${performance.data?.suggestions?.length || 0}`);
-              addTerminalOutput(`Security Risk: ${security.data?.riskLevel || 'unknown'}`);
+              addTerminalOutput('✅ Full analysis complete');
+              
+              if (linting.success) {
+                const { summary } = linting.data;
+                addTerminalOutput(`🐛 Code Issues: ${summary.totalErrors} errors, ${summary.totalWarnings} warnings`);
+                setAnalysisState(prev => ({ ...prev, structureAnalyzed: true }));
+              }
+              
+              if (security.success) {
+                const { summary } = security.data;
+                addTerminalOutput(`🛡️ Security: ${summary.total} vulnerabilities found`);
+                setAnalysisState(prev => ({ ...prev, securityScanned: true }));
+              }
+              
+              if (indexing.success) {
+                addTerminalOutput(`📁 Indexed ${indexing.data.filesIndexed} files for search`);
+              }
             }}
           >
             Full Analysis
@@ -481,10 +621,17 @@ const AIActionsPanel = () => {
                 return;
               }
               
-              addTerminalOutput('🤖 AI: Quick optimization scan...');
-              const result = await electronAPI.analyzePerformance(project.path);
+              addTerminalOutput('⚡ Quick code quality scan...');
+              const result = await electronAPI.lintProject(project.path);
               if (result.success) {
-                addTerminalOutput(`✅ Found ${result.data.suggestions.length} optimization opportunities`);
+                const { summary } = result.data;
+                addTerminalOutput(`✅ Scanned ${summary.filesLinted} files`);
+                addTerminalOutput(`📊 Found ${summary.totalIssues} code quality issues`);
+                if (summary.totalErrors > 0) {
+                  addTerminalOutput(`🔴 ${summary.totalErrors} errors need immediate attention`);
+                }
+              } else {
+                addTerminalOutput('❌ Quick scan failed');
               }
             }}
           >

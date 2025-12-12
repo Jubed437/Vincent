@@ -5,13 +5,18 @@ const { SYSTEM_PROMPT, ANALYSIS_PROMPT_TEMPLATE, REACT_SPECIFIC_QUESTIONS, NODE_
 class AIAgentLLM {
   constructor() {
     // Check for valid API keys (not placeholders)
+    const grokKey = process.env.GROK_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
     
+    const isValidGrokKey = grokKey && grokKey.startsWith('gsk_');
     const isValidAnthropicKey = anthropicKey && !anthropicKey.includes('your_anthropic_api_key_here');
     const isValidOpenaiKey = openaiKey && openaiKey.startsWith('sk-');
     
-    if (isValidAnthropicKey) {
+    if (isValidGrokKey) {
+      this.apiKey = grokKey;
+      this.provider = 'grok';
+    } else if (isValidAnthropicKey) {
       this.apiKey = anthropicKey;
       this.provider = 'anthropic';
     } else if (isValidOpenaiKey) {
@@ -108,7 +113,9 @@ class AIAgentLLM {
   }
 
   async callLLM(prompt) {
-    if (this.provider === 'anthropic') {
+    if (this.provider === 'grok') {
+      return await this.callGrok(prompt);
+    } else if (this.provider === 'anthropic') {
       return await this.callClaude(prompt);
     } else {
       return await this.callOpenAI(prompt);
@@ -141,6 +148,37 @@ class AIAgentLLM {
 
     const data = await response.json();
     return data.content[0].text;
+  }
+
+  async callGrok(prompt) {
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'grok-beta',
+        messages: [{
+          role: 'system',
+          content: SYSTEM_PROMPT
+        }, {
+          role: 'user',
+          content: prompt
+        }],
+        max_tokens: this.maxTokens,
+        temperature: parseFloat(process.env.LLM_TEMPERATURE) || 0.1,
+        stream: false
+      }),
+      signal: AbortSignal.timeout(this.timeout)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Grok API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
   }
 
   async callOpenAI(prompt) {

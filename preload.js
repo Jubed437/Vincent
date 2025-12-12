@@ -35,6 +35,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   semanticAnalysis: (staticResult) => ipcRenderer.invoke('ai-semantic-analysis', staticResult),
   analyzeProjectEnhanced: (projectPath) => ipcRenderer.invoke('analyze-project-enhanced', projectPath),
   
+  // Code Linting
+  lintFile: (filePath) => ipcRenderer.invoke('lint-file', filePath),
+  lintProject: (projectPath) => ipcRenderer.invoke('lint-project', projectPath),
+  
+  // Vulnerability Scanning
+  scanVulnerabilities: (projectPath) => ipcRenderer.invoke('scan-vulnerabilities', projectPath),
+  scanPackageJson: (projectPath) => ipcRenderer.invoke('scan-package-json', projectPath),
+  
+  // Code Search
+  indexProject: (projectPath) => ipcRenderer.invoke('index-project', projectPath),
+  searchCode: (query, options) => ipcRenderer.invoke('search-code', query, options),
+  searchFiles: (filename) => ipcRenderer.invoke('search-files', filename),
+  getSearchStats: () => ipcRenderer.invoke('get-search-stats'),
+  
   // Event listeners
   onTerminalData: (callback) => {
     ipcRenderer.on('terminal-data', (event, data) => callback(data));

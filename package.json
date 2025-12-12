@@ -14,14 +14,21 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/parser": "^8.49.0",
+    "audit-ci": "^7.1.0",
     "dotenv": "^17.2.3",
+    "eslint": "^9.39.1",
     "framer-motion": "^10.16.4",
+    "fuse.js": "^7.1.0",
     "lucide-react": "^0.263.1",
     "node-pty": "^1.0.0",
+    "npm-audit-html": "^1.5.0",
+    "prismjs": "^1.30.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.15.0",
-
+    "react-syntax-highlighter": "^16.1.0",
     "zustand": "^4.4.1"
   },
   "devDependencies": {

@@ -218,6 +218,63 @@ class ElectronAPI {
     }
   }
 
+  // Code Analysis
+  async lintFile(filePath) {
+    try {
+      return await window.electronAPI.lintFile(filePath);
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async lintProject(projectPath) {
+    try {
+      return await window.electronAPI.lintProject(projectPath);
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async scanVulnerabilities(projectPath) {
+    try {
+      return await window.electronAPI.scanVulnerabilities(projectPath);
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async indexProject(projectPath) {
+    try {
+      return await window.electronAPI.indexProject(projectPath);
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async searchCode(query, options = {}) {
+    try {
+      return await window.electronAPI.searchCode(query, options);
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async searchFiles(filename) {
+    try {
+      return await window.electronAPI.searchFiles(filename);
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async getSearchStats() {
+    try {
+      return await window.electronAPI.getSearchStats();
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
   // Window Controls
   minimizeWindow() {
     window.electronAPI.minimizeWindow();
