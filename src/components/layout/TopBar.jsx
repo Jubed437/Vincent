@@ -4,7 +4,8 @@ import {
   FileText, 
   Package, 
   Bot,
-  Code2
+  Code2,
+  Database
 } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { useUIStore } from '../../store/uiStore';
@@ -33,6 +34,12 @@ const TopBar = () => {
       id: 'dependencies', 
       label: 'Dependencies', 
       icon: Package,
+      disabled: !projectLoaded
+    },
+    { 
+      id: 'database', 
+      label: 'Database', 
+      icon: Database,
       disabled: !projectLoaded
     },
     { 

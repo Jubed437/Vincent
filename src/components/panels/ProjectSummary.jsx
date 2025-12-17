@@ -24,6 +24,9 @@ const ProjectSummary = () => {
   const { 
     project, 
     projectFiles, 
+    techStack,
+    npmScripts,
+    dependencies,
     semanticInsights,
     fileDescriptions,
     apiFlow,
@@ -32,13 +35,9 @@ const ProjectSummary = () => {
     recommendations,
     frameworkInsights
   } = useAppStore();
-  
-  // Mock data for now - these would come from actual analysis
-  const techStack = [];
-  const npmScripts = [];
-  const dependencies = [];
 
   const countFiles = (files) => {
+    if (!files || !Array.isArray(files)) return 0;
     return files.reduce((count, file) => {
       if (file.type === 'file') {
         return count + 1;
@@ -55,7 +54,6 @@ const ProjectSummary = () => {
     try {
       console.log(`Running npm script: ${scriptName}`);
       
-      // Execute script via terminal
       const result = await electronAPI.terminalInput(`npm run ${scriptName}`);
       if (result.success) {
         console.log(`Script ${scriptName} executed`);
@@ -67,17 +65,46 @@ const ProjectSummary = () => {
     }
   };
 
-  const getStackIcon = (type) => {
+  const getStackIcon = (type, category) => {
+    if (category === 'Backend') {
+      switch (type) {
+        case 'framework':
+        case 'server':
+          return Server;
+        case 'database':
+        case 'database-connection':
+          return Database;
+        case 'api':
+        case 'api-structure':
+          return Globe;
+        default:
+          return Server;
+      }
+    }
+    
     switch (type) {
       case 'framework':
         return Code;
-      case 'backend':
-        return Server;
       case 'database':
         return Database;
+      case 'build-tool':
+        return Package;
       default:
         return Package;
     }
+  };
+  
+  const getStackColor = (category, type) => {
+    if (category === 'Backend') {
+      return 'text-green-400';
+    }
+    if (category === 'Frontend') {
+      return 'text-blue-400';
+    }
+    if (category === 'Database') {
+      return 'text-yellow-400';
+    }
+    return 'text-vscode-accent';
   };
 
   const getStatusIcon = (status) => {
@@ -91,19 +118,26 @@ const ProjectSummary = () => {
     }
   };
 
+  const safeArray = (arr) => arr || [];
+  const safeTechStack = safeArray(techStack);
+  const safeNpmScripts = safeArray(npmScripts);
+  const safeDependencies = safeArray(dependencies);
+  const safeCriticalIssues = safeArray(criticalIssues);
+  const safeRecommendations = safeArray(recommendations);
+
   const projectStats = {
     totalFiles: projectFiles ? countFiles(projectFiles) : 0,
-    linesOfCode: 0, // Would need file content analysis
-    dependencies: dependencies.filter(d => d.type === 'production').length,
-    devDependencies: dependencies.filter(d => d.type === 'development').length
+    linesOfCode: 0,
+    dependencies: safeDependencies.filter(d => d.type === 'production').length,
+    devDependencies: safeDependencies.filter(d => d.type === 'development').length
   };
 
   const analysisSteps = [
     { id: 1, name: 'Project Structure Analysis', status: project ? 'completed' : 'pending' },
-    { id: 2, name: 'Dependency Detection', status: dependencies.length > 0 ? 'completed' : 'pending' },
-    { id: 3, name: 'Tech Stack Identification', status: techStack.length > 0 ? 'completed' : 'pending' },
+    { id: 2, name: 'Dependency Detection', status: safeDependencies.length > 0 ? 'completed' : 'pending' },
+    { id: 3, name: 'Tech Stack Identification', status: safeTechStack.length > 0 ? 'completed' : 'pending' },
     { id: 4, name: 'Semantic Analysis', status: semanticInsights ? 'completed' : 'pending' },
-    { id: 5, name: 'Security Scan', status: criticalIssues.length > 0 ? 'completed' : 'pending' },
+    { id: 5, name: 'Security Scan', status: safeCriticalIssues.length > 0 ? 'completed' : 'pending' },
     { id: 6, name: 'Performance Analysis', status: 'pending' }
   ];
 
@@ -147,29 +181,31 @@ const ProjectSummary = () => {
       {/* Tech Stack */}
       <Card>
         <h4 className="text-vscode-text font-medium mb-3">Technology Stack</h4>
-        {techStack.length === 0 ? (
+        {safeTechStack.length === 0 ? (
           <div className="text-vscode-text-muted text-sm">
             No tech stack detected yet.
           </div>
         ) : (
           <div className="space-y-2">
-            {techStack.map((tech, index) => {
-              const Icon = getStackIcon(tech.type);
+            {safeTechStack.map((tech, index) => {
+              const Icon = getStackIcon(tech.type, tech.category);
+              const colorClass = getStackColor(tech.category, tech.type);
               return (
                 <motion.div
-                  key={tech.name}
+                  key={`${tech.name}-${index}`}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
                   className="flex items-center gap-3 p-2 rounded bg-vscode-hover"
                 >
-                  <Icon size={16} className="text-vscode-accent" />
+                  <Icon size={16} className={colorClass} />
                   <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="text-vscode-text text-sm font-medium truncate overflow-hidden text-ellipsis max-w-full">
                       {tech.name}
                     </div>
                     <div className="text-vscode-text-muted text-xs truncate overflow-hidden text-ellipsis max-w-full">
-                      v{tech.version} • {tech.type}
+                      {tech.version !== 'detected' ? `v${tech.version}` : 'detected'} - {tech.category} {tech.type}
+                      {tech.file && ` - ${tech.file}`}
                     </div>
                   </div>
                 </motion.div>
@@ -180,11 +216,11 @@ const ProjectSummary = () => {
       </Card>
 
       {/* NPM Scripts */}
-      {npmScripts.length > 0 && (
+      {safeNpmScripts.length > 0 && (
         <Card>
           <h4 className="text-vscode-text font-medium mb-3">NPM Scripts</h4>
           <div className="space-y-2">
-            {npmScripts.map((script, index) => (
+            {safeNpmScripts.map((script, index) => (
               <motion.div
                 key={script.name}
                 initial={{ opacity: 0, x: -20 }}
@@ -212,126 +248,6 @@ const ProjectSummary = () => {
                 </Button>
               </motion.div>
             ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Semantic Insights */}
-      {semanticInsights && (
-        <Card>
-          <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
-            <Brain size={16} className="text-purple-400" />
-            AI Insights
-          </h4>
-          <div className="text-sm text-vscode-text-muted leading-relaxed">
-            {semanticInsights}
-          </div>
-        </Card>
-      )}
-
-      {/* API Flow */}
-      {apiFlow && (
-        <Card>
-          <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
-            <GitBranch size={16} className="text-blue-400" />
-            API Flow
-          </h4>
-          <div className="text-sm text-vscode-text-muted leading-relaxed">
-            {apiFlow}
-          </div>
-        </Card>
-      )}
-
-      {/* Component Flow */}
-      {componentFlow && (
-        <Card>
-          <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
-            <Code size={16} className="text-green-400" />
-            Component Flow
-          </h4>
-          <div className="text-sm text-vscode-text-muted leading-relaxed">
-            {componentFlow}
-          </div>
-        </Card>
-      )}
-
-      {/* Critical Issues */}
-      {criticalIssues.length > 0 && (
-        <Card>
-          <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
-            <Shield size={16} className="text-red-400" />
-            Critical Issues ({criticalIssues.length})
-          </h4>
-          <div className="space-y-2">
-            {criticalIssues.slice(0, 3).map((issue, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="p-2 rounded bg-vscode-hover border-l-2 border-red-400"
-              >
-                <div className="text-sm font-medium text-vscode-text">
-                  {issue.type?.toUpperCase()}: {issue.description}
-                </div>
-                {issue.file && (
-                  <div className="text-xs text-vscode-text-muted mt-1">
-                    {issue.file}
-                  </div>
-                )}
-              </motion.div>
-            ))}
-            {criticalIssues.length > 3 && (
-              <div className="text-xs text-vscode-text-muted">
-                +{criticalIssues.length - 3} more issues
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Recommendations */}
-      {recommendations.length > 0 && (
-        <Card>
-          <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
-            <FileText size={16} className="text-yellow-400" />
-            Recommendations ({recommendations.length})
-          </h4>
-          <div className="space-y-2">
-            {recommendations.slice(0, 3).map((rec, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="p-2 rounded bg-vscode-hover border-l-2 border-yellow-400"
-              >
-                <div className="text-sm font-medium text-vscode-text">
-                  {rec.category?.toUpperCase()}: {rec.description}
-                </div>
-                <div className="text-xs text-vscode-text-muted mt-1">
-                  Priority: {rec.priority}
-                </div>
-              </motion.div>
-            ))}
-            {recommendations.length > 3 && (
-              <div className="text-xs text-vscode-text-muted">
-                +{recommendations.length - 3} more recommendations
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Framework Insights */}
-      {frameworkInsights && (
-        <Card>
-          <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
-            <Package size={16} className="text-cyan-400" />
-            Framework Insights
-          </h4>
-          <div className="text-sm text-vscode-text-muted leading-relaxed">
-            {frameworkInsights}
           </div>
         </Card>
       )}

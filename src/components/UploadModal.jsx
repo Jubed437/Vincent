@@ -51,12 +51,59 @@ const UploadModal = () => {
 
   const handleFolderUpload = async () => {
     try {
+      addTerminalOutput('📁 Selecting project folder...');
       const result = await electronAPI.selectProjectFolder();
-      if (result.success) {
-        await loadProject(result);
-        setShowUploadModal(false);
+      if (result.success && result.path) {
+        addTerminalOutput(`📂 Loading project: ${result.path}`);
+        const projectData = await electronAPI.loadProject(result.path);
+        if (projectData.success) {
+          await loadProject(projectData);
+          addTerminalOutput('✅ Project loaded successfully');
+          
+          // Auto-detect database and backend
+          addTerminalOutput('🔍 Auto-detecting database and backend...');
+          try {
+            const techResult = await electronAPI.detectTechStack();
+            if (techResult.success) {
+              const { techStack, projectType } = techResult.data;
+              
+              addTerminalOutput(`📊 Project Type: ${projectType}`);
+              
+              const databases = techStack.filter(tech => 
+                tech.type === 'database' || tech.type === 'database-connection'
+              );
+              
+              if (databases.length > 0) {
+                addTerminalOutput('🗄️ Detected Databases:');
+                databases.forEach(db => {
+                  addTerminalOutput(`  ✓ ${db.name}`);
+                });
+              }
+              
+              const backends = techStack.filter(tech => 
+                tech.category === 'Backend' && tech.type === 'framework'
+              );
+              
+              if (backends.length > 0) {
+                addTerminalOutput('🔧 Backend Frameworks:');
+                backends.forEach(backend => {
+                  addTerminalOutput(`  ✓ ${backend.name}`);
+                });
+              }
+            }
+          } catch (error) {
+            addTerminalOutput(`⚠️ Auto-detection failed: ${error.message}`);
+          }
+          
+          setShowUploadModal(false);
+        } else {
+          addTerminalOutput(`❌ Failed to load project: ${projectData.message}`);
+        }
+      } else {
+        addTerminalOutput('❌ No folder selected');
       }
     } catch (error) {
+      addTerminalOutput(`❌ Upload error: ${error.message}`);
       console.error('Upload error:', error);
     }
   };

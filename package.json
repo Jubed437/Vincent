@@ -21,7 +21,7 @@
     "eslint": "^9.39.1",
     "framer-motion": "^10.16.4",
     "fuse.js": "^7.1.0",
-    "lucide-react": "^0.263.1",
+    "lucide-react": "^0.561.0",
     "node-pty": "^1.0.0",
     "npm-audit-html": "^1.5.0",
     "prismjs": "^1.30.0",

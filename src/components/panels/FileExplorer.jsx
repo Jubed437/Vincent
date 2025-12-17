@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Database } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { getFileIcon } from '../../utils/fileIcons';
+import Button from '../ui/Button';
+import electronAPI from '../../utils/electronAPI';
 
 const FileItem = ({ file, level = 0, onSelect }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -93,14 +95,52 @@ const FileItem = ({ file, level = 0, onSelect }) => {
 };
 
 const FileExplorer = () => {
-  const { projectFiles, setSelectedFile } = useAppStore();
+  const { projectFiles, setSelectedFile, project, addTerminalOutput, setActiveView } = useAppStore();
+  
+  const handleQuickDetect = async () => {
+    if (!project?.path) return;
+    
+    try {
+      addTerminalOutput('🔍 Quick database detection...');
+      const result = await electronAPI.detectTechStack();
+      if (result.success) {
+        const databases = result.data.techStack.filter(tech => 
+          tech.type === 'database' || tech.type === 'database-connection'
+        );
+        
+        if (databases.length > 0) {
+          addTerminalOutput(`🗄️ Found ${databases.length} database(s)`);
+          databases.forEach(db => addTerminalOutput(`  ✓ ${db.name}`));
+        } else {
+          addTerminalOutput('🗄️ No databases detected');
+        }
+        
+        // Switch to database panel
+        setActiveView('database');
+      }
+    } catch (error) {
+      addTerminalOutput(`❌ Detection failed: ${error.message}`);
+    }
+  };
 
   return (
     <div className="h-full overflow-y-auto scrollbar-thin">
       <div className="p-3">
-        <h3 className="text-vscode-text font-medium mb-3 truncate overflow-hidden text-ellipsis whitespace-nowrap">
-          Project Files
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-vscode-text font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
+            Project Files
+          </h3>
+          {project && (
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={Database}
+              onClick={handleQuickDetect}
+              className="text-xs"
+              title="Quick detect databases"
+            />
+          )}
+        </div>
         
         {projectFiles.length === 0 ? (
           <div className="text-vscode-text-muted text-sm">

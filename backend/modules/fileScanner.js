@@ -4,19 +4,24 @@ const path = require('path');
 class FileScanner {
   scanProject(projectPath) {
     try {
+      console.log(`Scanning project: ${projectPath}`);
       const idCounter = { current: 0 };
       const structure = this.scanDirectory(projectPath, 0, 3, idCounter);
       const packageJson = this.readPackageJson(projectPath);
+      
+      console.log(`Scan completed. Found ${structure.length} items`);
       
       return {
         success: true,
         data: {
           structure,
           packageJson,
-          rootPath: projectPath
+          rootPath: projectPath,
+          name: path.basename(projectPath)
         }
       };
     } catch (error) {
+      console.error('Scan error:', error);
       return {
         success: false,
         message: `Failed to scan project: ${error.message}`
@@ -25,7 +30,7 @@ class FileScanner {
   }
 
   scanDirectory(dirPath, depth = 0, maxDepth = 3, idCounter = { current: 0 }) {
-    if (depth > maxDepth) return null;
+    if (depth > maxDepth) return [];
     
     const items = [];
     
@@ -38,27 +43,25 @@ class FileScanner {
         try {
           const fullPath = path.join(dirPath, entry.name);
           const item = {
-            id: idCounter.current++,
+            id: `file_${idCounter.current++}`,
             name: entry.name,
             path: fullPath,
             type: entry.isDirectory() ? 'folder' : 'file'
           };
           
           if (entry.isDirectory()) {
-            item.children = this.scanDirectory(fullPath, depth + 1, maxDepth, idCounter);
+            const children = this.scanDirectory(fullPath, depth + 1, maxDepth, idCounter);
+            item.children = children;
           } else {
             item.size = this.getFileSize(fullPath);
           }
           
           items.push(item);
         } catch (itemError) {
-          // Log error but continue scanning other items
           console.error(`Error scanning ${entry.name}:`, itemError.message);
-          // Continue with next item
         }
       }
     } catch (error) {
-      // If we can't read the directory at all, log and return empty
       console.error(`Error reading directory ${dirPath}:`, error.message);
       return [];
     }

@@ -7,6 +7,7 @@ import UploadModal from '../UploadModal';
 import FileExplorer from '../panels/FileExplorer';
 import ProjectSummary from '../panels/ProjectSummary';
 import DependenciesPanel from '../panels/DependenciesPanel';
+import DatabasePanel from '../panels/DatabasePanel';
 import AIActionsPanel from '../panels/AIActionsPanel';
 import EditorsPanel from '../panels/EditorsPanel';
 
@@ -21,6 +22,8 @@ const AppLayout = () => {
         return <ProjectSummary />;
       case 'dependencies':
         return <DependenciesPanel />;
+      case 'database':
+        return <DatabasePanel />;
       case 'editors':
         return <EditorsPanel />;
       case 'actions':

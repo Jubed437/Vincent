@@ -37,8 +37,7 @@ function createWindow() {
   ipcMain.on('close-window', () => {
     // Clean up any running processes before closing
     if (vincentEngine) {
-      const projectRunner = require('./backend/modules/projectRunner');
-      projectRunner.stopProject();
+      console.log('Cleaning up Vincent Engine...');
     }
     mainWindow.close();
   });

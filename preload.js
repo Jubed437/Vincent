@@ -22,9 +22,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Terminal operations
   createTerminal: () => ipcRenderer.invoke('create-terminal'),
   terminalInput: (input) => ipcRenderer.invoke('terminal-input', input),
+  executeTerminalCommand: (command, cwd) => ipcRenderer.invoke('execute-terminal-command', command, cwd),
   killTerminal: () => ipcRenderer.invoke('kill-terminal'),
   getTerminalHistory: () => ipcRenderer.invoke('get-terminal-history'),
   getProjectStatus: () => ipcRenderer.invoke('get-project-status'),
+  sendTerminalInput: (input) => ipcRenderer.invoke('send-terminal-input', input),
+  interruptProcess: () => ipcRenderer.invoke('interrupt-process'),
   
   // Editor operations
   detectEditors: () => ipcRenderer.invoke('detect-editors'),

@@ -101,6 +101,15 @@ class ElectronAPI {
     }
   }
 
+  async executeTerminalCommand(command, cwd) {
+    try {
+      return await window.electronAPI.terminalInput(command);
+    } catch (error) {
+      console.error('Error executing terminal command:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
   // Editor Management
   async detectEditors() {
     try {

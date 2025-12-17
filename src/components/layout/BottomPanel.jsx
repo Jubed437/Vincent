@@ -27,10 +27,16 @@ const BottomPanel = () => {
     ));
   };
 
-  const createNewTerminal = () => {
-    const newId = Math.max(...terminals.map(t => t.id)) + 1;
-    setTerminals(prev => [...prev, { id: newId, output: [], currentInput: '' }]);
-    setActiveTerminal(newId);
+  const createNewTerminal = async () => {
+    try {
+      const result = await electronAPI.createTerminal();
+      if (result.success) {
+        const { addTerminalOutput } = useAppStore.getState();
+        addTerminalOutput(`New terminal created: ${result.data.terminalId}`);
+      }
+    } catch (error) {
+      console.error('Failed to create terminal:', error);
+    }
   };
 
   const { project } = useAppStore();
@@ -222,80 +228,7 @@ const BottomPanel = () => {
 
         {/* Panel Content */}
         <div className="flex-1 overflow-hidden">
-          {activeTab === 'output' ? (
-            <TerminalPanel />
-          ) : (
-            <div className="h-full">
-              {/* Terminal Tabs */}
-              <div className="flex bg-gray-800 border-b border-gray-700">
-                {terminals.map(terminal => (
-                  <div
-                    key={terminal.id}
-                    className={`px-3 py-1 text-xs cursor-pointer flex items-center gap-2 ${
-                      activeTerminal === terminal.id ? 'bg-black text-white' : 'text-gray-400 hover:text-white'
-                    }`}
-                    onClick={() => setActiveTerminal(terminal.id)}
-                  >
-                    Terminal {terminal.id}
-                    {terminals.length > 1 && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (terminals.length > 1) {
-                            setTerminals(prev => prev.filter(t => t.id !== terminal.id));
-                            if (activeTerminal === terminal.id) {
-                              setActiveTerminal(terminals.find(t => t.id !== terminal.id)?.id || 1);
-                            }
-                          }
-                        }}
-                        className="text-gray-500 hover:text-red-400"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Terminal Content */}
-              <div 
-                ref={outputRef}
-                className="flex-1 overflow-y-auto p-3 font-mono text-sm bg-black text-white cursor-text"
-                tabIndex={0}
-                onKeyDown={handleKeyDown}
-                onClick={() => inputRef.current?.focus()}
-                style={{ height: 'calc(100% - 32px)' }}
-              >
-                {output.map((line) => (
-                  <div 
-                    key={line.id} 
-                    className={`whitespace-pre-wrap ${
-                      line.type === 'error' ? 'text-red-400' : 
-                      line.type === 'command' ? 'text-white' : 
-                      line.type === 'system' ? 'text-gray-300' :
-                      'text-gray-200'
-                    }`}
-                  >
-                    {line.text}
-                  </div>
-                ))}
-                
-                {/* Current prompt line */}
-                <div className="flex items-center">
-                  <span className="text-blue-400 font-bold">PS {project?.path || 'C:\\'}&gt;</span>
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={currentInput}
-                    onChange={(e) => setCurrentInput(e.target.value)}
-                    className="flex-1 bg-transparent text-white outline-none border-none ml-1"
-                    style={{ caretColor: 'white' }}
-                    autoFocus
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+          <TerminalPanel />
         </div>
       </motion.div>
     </div>

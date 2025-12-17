@@ -1,134 +1,96 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Terminal as TerminalIcon, ExternalLink, Copy, Trash2 } from 'lucide-react';
+import { Terminal as TerminalIcon, ExternalLink, Copy, Trash2, Play, Square } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import Button from './ui/Button';
 import electronAPI from '../utils/electronAPI';
 
 const TerminalPanel = () => {
-  const [terminalLines, setTerminalLines] = useState([]);
-  const [isAutoScroll, setIsAutoScroll] = useState(true);
+  const [command, setCommand] = useState('');
   const terminalRef = useRef(null);
-  const { project, isProjectRunning, serverURL, setProjectRunning, setServerURL } = useAppStore();
+  const { project, isProjectRunning, serverURL, terminalOutput, setProjectRunning, setServerURL, addTerminalOutput, clearTerminalOutput } = useAppStore();
 
-  // Clean ANSI codes and detect URLs
-  const cleanText = (text) => {
-    return text.replace(/\u001b\[.*?m/g, '').trim();
-  };
-
-  const detectURL = (text) => {
-    const urlRegex = /(https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0):\d+\/?)/i;
-    return text.match(urlRegex)?.[1];
-  };
-
-  const renderTextWithLinks = (text) => {
-    const cleanedText = cleanText(text);
-    const urlRegex = /(https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0):\d+\/?)/gi;
-    
-    const parts = cleanedText.split(urlRegex);
-    return parts.map((part, index) => {
-      if (urlRegex.test(part)) {
-        return (
-          <a
-            key={index}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 underline hover:text-blue-300 cursor-pointer"
-            onClick={(e) => {
-              e.preventDefault();
-              electronAPI.openExternal(part);
-            }}
-          >
-            {part}
-          </a>
-        );
-      }
-      return part;
-    });
-  };
-
-  // Auto-scroll to bottom when new content arrives
+  // Auto-scroll to bottom when new output is added
   useEffect(() => {
-    if (isAutoScroll && terminalRef.current) {
+    if (terminalRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [terminalLines, isAutoScroll]);
+  }, [terminalOutput]);
 
-  // Listen for terminal output
-  useEffect(() => {
-    const unsubscribeOutput = electronAPI.onTerminalOutput((data) => {
-      const text = data.text || data;
-      const cleanedText = cleanText(text);
-      const detectedURL = detectURL(cleanedText);
-      
-      const newLine = {
-        id: Date.now() + Math.random(),
-        text: cleanedText,
-        timestamp: data.timestamp || new Date().toISOString(),
-        type: data.type || 'output',
-        hasURL: !!detectedURL
-      };
-      
-      setTerminalLines(prev => [...prev, newLine]);
-    });
+  const executeCommand = async (cmd) => {
+    if (!cmd.trim()) return;
+    
+    addTerminalOutput(`$ ${cmd}`);
+    
+    try {
+      const result = await electronAPI.executeTerminalCommand(cmd, project?.path);
+      if (result.success) {
+        addTerminalOutput(result.output || 'Command executed successfully');
+      } else {
+        addTerminalOutput(`Error: ${result.message}`);
+      }
+    } catch (error) {
+      addTerminalOutput(`Error: ${error.message}`);
+    }
+  };
 
-    const unsubscribeUrl = electronAPI.onProjectURL((url) => {
-      setServerURL(url);
-      const urlLine = {
-        id: Date.now() + Math.random(),
-        text: `🌐 Server available at: ${url}`,
-        timestamp: new Date().toISOString(),
-        type: 'success',
-        hasURL: true
-      };
-      setTerminalLines(prev => [...prev, urlLine]);
-    });
-
-    return () => {
-      unsubscribeOutput?.();
-      unsubscribeUrl?.();
-    };
-  }, [setServerURL]);
-
-  // Handle scroll detection for auto-scroll toggle
-  const handleScroll = () => {
-    if (terminalRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
-      setIsAutoScroll(isAtBottom);
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      executeCommand(command);
+      setCommand('');
     }
   };
 
   const clearTerminal = () => {
-    setTerminalLines([]);
+    clearTerminalOutput();
+  };
+
+  const startProject = async () => {
+    if (!project?.path) {
+      addTerminalOutput('No project loaded. Please upload a project first.');
+      return;
+    }
+    
+    try {
+      addTerminalOutput('Starting project...');
+      addTerminalOutput(`Project path: ${project.path}`);
+      
+      const result = await electronAPI.startProject(project.path);
+      
+      if (!result.success) {
+        addTerminalOutput(`Failed to start: ${result.message}`);
+      } else {
+        addTerminalOutput('Project started successfully');
+        setProjectRunning(true);
+        
+        // Check for server URL in output
+        if (result.output && result.output.includes('localhost')) {
+          const urlMatch = result.output.match(/https?:\/\/localhost:\d+/);
+          if (urlMatch) {
+            setServerURL(urlMatch[0]);
+          }
+        }
+      }
+    } catch (error) {
+      addTerminalOutput(`Error: ${error.message}`);
+    }
+  };
+
+  const stopProject = async () => {
+    try {
+      const result = await electronAPI.stopProject();
+      if (result.success) {
+        addTerminalOutput('Project stopped');
+        setProjectRunning(false);
+        setServerURL(null);
+      }
+    } catch (error) {
+      addTerminalOutput(`Failed to stop project: ${error.message}`);
+    }
   };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-  };
-
-  const openUrl = (url) => {
-    electronAPI.openExternal?.(url) || window.open(url, '_blank');
-  };
-
-  const getLineColor = (type) => {
-    switch (type) {
-      case 'error': return 'text-red-400';
-      case 'success': return 'text-green-400';
-      case 'warning': return 'text-yellow-400';
-      case 'info': return 'text-blue-400';
-      default: return 'text-gray-300';
-    }
-  };
-
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString('en-US', { 
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
   };
 
   return (
@@ -139,7 +101,7 @@ const TerminalPanel = () => {
           <TerminalIcon size={16} className="text-gray-400" />
           <span className="text-sm text-gray-300">Terminal</span>
           {isProjectRunning && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 ml-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               <span className="text-xs text-green-400">Running</span>
             </div>
@@ -147,6 +109,28 @@ const TerminalPanel = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          {!isProjectRunning ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={Play}
+              onClick={startProject}
+              className="text-xs text-green-400 hover:text-green-300"
+              disabled={!project?.path}
+            >
+              Start
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={Square}
+              onClick={stopProject}
+              className="text-xs text-red-400 hover:text-red-300"
+            >
+              Stop
+            </Button>
+          )}
           {serverURL && (
             <Button
               variant="ghost"
@@ -215,65 +199,36 @@ const TerminalPanel = () => {
       )}
 
       {/* Terminal Content */}
-      <div 
-        ref={terminalRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-3 font-mono text-sm space-y-1"
-      >
-        {terminalLines.length === 0 ? (
-          <div className="text-gray-500 text-center py-8">
-            <TerminalIcon size={48} className="mx-auto mb-2 opacity-50" />
-            <p>Terminal output will appear here</p>
-            <p className="text-xs mt-1">Start a project to see live logs</p>
-          </div>
-        ) : (
-          terminalLines.map((line) => (
-            <motion.div
-              key={line.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-start gap-2 group"
-            >
-              <span className="text-xs text-gray-500 font-mono min-w-[60px]">
-                {formatTimestamp(line.timestamp)}
-              </span>
-              <div className={`flex-1 whitespace-pre-wrap break-words ${getLineColor(line.type)}`}>
-                {line.hasURL ? renderTextWithLinks(line.text) : line.text}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={Copy}
-                onClick={() => copyToClipboard(line.text)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-              />
-            </motion.div>
-          ))
-        )}
-      </div>
-
-      {/* Auto-scroll indicator */}
-      {!isAutoScroll && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute bottom-4 right-4"
+      <div className="flex-1 flex flex-col bg-black">
+        {/* Terminal Output */}
+        <div 
+          ref={terminalRef}
+          className="flex-1 p-4 overflow-y-scroll font-mono text-sm text-green-400"
+          style={{ minHeight: '200px', maxHeight: '400px' }}
         >
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setIsAutoScroll(true);
-              if (terminalRef.current) {
-                terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-              }
-            }}
-            className="text-xs shadow-lg"
-          >
-            Scroll to bottom
-          </Button>
-        </motion.div>
-      )}
+          {terminalOutput.map((output, index) => (
+            <div key={output.id || index} className="mb-1">
+              <span className="text-gray-500 text-xs mr-2">{output.timestamp}</span>
+              <span>{output.text}</span>
+            </div>
+          ))}
+        </div>
+        
+        {/* Terminal Input */}
+        <div className="border-t border-gray-700 p-2">
+          <div className="flex items-center">
+            <span className="text-green-400 mr-2">$</span>
+            <input
+              type="text"
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className="flex-1 bg-transparent text-green-400 outline-none font-mono"
+              placeholder="Enter command..."
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

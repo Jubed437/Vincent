@@ -1,13 +1,137 @@
-@import '~xterm/css/xterm.css';
-
+/* xterm.js terminal styling */
 .xterm {
-  padding: 10px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.2;
 }
 
 .xterm-viewport {
-  background-color: #000000 !important;
+  background-color: #000000;
+  overflow-y: scroll;
 }
 
 .xterm-screen {
-  background-color: #000000 !important;
+  position: relative;
 }
+
+.xterm-helper-textarea {
+  position: absolute;
+  left: -9999em;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: -10;
+  white-space: nowrap;
+  overflow: hidden;
+  resize: none;
+}
+
+.xterm-char-measure-element {
+  display: inline-block;
+  visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: -9999em;
+  line-height: normal;
+}
+
+.xterm-rows {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.xterm-rows > div {
+  white-space: nowrap;
+}
+
+.xterm-selection {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.xterm-selection div {
+  position: absolute;
+  background-color: #ffffff;
+}
+
+.xterm-bold {
+  font-weight: bold;
+}
+
+.xterm-underline {
+  text-decoration: underline;
+}
+
+.xterm-blink {
+  text-decoration: blink;
+}
+
+.xterm-hidden {
+  visibility: hidden;
+}
+
+.xterm-strikethrough {
+  text-decoration: line-through;
+}
+
+.xterm-cursor {
+  position: absolute;
+  left: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.xterm-cursor-block {
+  background: #ffffff;
+  color: #000000;
+}
+
+.xterm-cursor-bar {
+  box-shadow: 1px 0 0 #ffffff;
+}
+
+.xterm-cursor-underline {
+  box-shadow: 0 -1px 0 #ffffff;
+}
+
+/* Color classes for terminal output */
+.xterm-color-0 { color: #2e3436; }
+.xterm-color-1 { color: #cc0000; }
+.xterm-color-2 { color: #4e9a06; }
+.xterm-color-3 { color: #c4a000; }
+.xterm-color-4 { color: #3465a4; }
+.xterm-color-5 { color: #75507b; }
+.xterm-color-6 { color: #06989a; }
+.xterm-color-7 { color: #d3d7cf; }
+.xterm-color-8 { color: #555753; }
+.xterm-color-9 { color: #ef2929; }
+.xterm-color-10 { color: #8ae234; }
+.xterm-color-11 { color: #fce94f; }
+.xterm-color-12 { color: #729fcf; }
+.xterm-color-13 { color: #ad7fa8; }
+.xterm-color-14 { color: #34e2e2; }
+.xterm-color-15 { color: #eeeeec; }
+
+/* Background colors */
+.xterm-bg-color-0 { background-color: #2e3436; }
+.xterm-bg-color-1 { background-color: #cc0000; }
+.xterm-bg-color-2 { background-color: #4e9a06; }
+.xterm-bg-color-3 { background-color: #c4a000; }
+.xterm-bg-color-4 { background-color: #3465a4; }
+.xterm-bg-color-5 { background-color: #75507b; }
+.xterm-bg-color-6 { background-color: #06989a; }
+.xterm-bg-color-7 { background-color: #d3d7cf; }
+.xterm-bg-color-8 { background-color: #555753; }
+.xterm-bg-color-9 { background-color: #ef2929; }
+.xterm-bg-color-10 { background-color: #8ae234; }
+.xterm-bg-color-11 { background-color: #fce94f; }
+.xterm-bg-color-12 { background-color: #729fcf; }
+.xterm-bg-color-13 { background-color: #ad7fa8; }
+.xterm-bg-color-14 { background-color: #34e2e2; }
+.xterm-bg-color-15 { background-color: #eeeeec; }

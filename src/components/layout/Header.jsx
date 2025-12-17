@@ -1,4 +1,4 @@
-import { Upload, Search, Download, Play, Square, Settings, Minus, Maximize2, X, ExternalLink } from 'lucide-react';
+import { Upload, Search, Download, Play, Square, Settings, Minus, Maximize2, X, ExternalLink, Database } from 'lucide-react';
 import Button from '../ui/Button';
 import { useAppStore } from '../../store/appStore';
 import electronAPI from '../../utils/electronAPI';
@@ -16,6 +16,15 @@ const Header = () => {
     addTerminalOutput
   } = useAppStore();
   
+  // Check if electronAPI is available
+  useEffect(() => {
+    console.log('ElectronAPI available:', !!electronAPI);
+    console.log('ElectronAPI methods:', Object.keys(electronAPI || {}));
+    if (typeof window !== 'undefined') {
+      console.log('Window.electronAPI:', !!window.electronAPI);
+    }
+  }, []);
+  
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
 
@@ -29,20 +38,43 @@ const Header = () => {
 
   const handleUpload = async () => {
     try {
+      addTerminalOutput('📁 Selecting project folder...');
+      
       const result = await electronAPI.selectProjectFolder();
+      console.log('Dialog result:', result);
+      
       if (result.success && result.path) {
+        addTerminalOutput(`📂 Loading project: ${result.path}`);
+        
+        // Load the project
         const projectData = await electronAPI.loadProject(result.path);
+        console.log('Project data:', projectData);
+        
         if (projectData.success) {
           await loadProject(projectData);
-          console.log('Project loaded:', projectData);
+          addTerminalOutput('✅ Project loaded successfully');
+          
+          // Auto-detect tech stack
+          addTerminalOutput('🔍 Auto-detecting technologies...');
+          try {
+            const techResult = await electronAPI.detectTechStack();
+            if (techResult.success) {
+              const { techStack, projectType } = techResult.data;
+              addTerminalOutput(`📊 Project Type: ${projectType}`);
+              addTerminalOutput(`🔧 Found ${techStack.length} technologies`);
+            }
+          } catch (error) {
+            addTerminalOutput(`⚠️ Auto-detection failed: ${error.message}`);
+          }
         } else {
-          console.error('Failed to load project:', projectData.message);
+          addTerminalOutput(`❌ Failed to load project: ${projectData.message}`);
         }
       } else {
-        console.error('Failed to select project folder:', result.message || 'No folder selected');
+        addTerminalOutput('❌ No folder selected');
       }
     } catch (error) {
       console.error('Upload error:', error);
+      addTerminalOutput(`❌ Error: ${error.message}`);
     }
   };
 
@@ -69,6 +101,72 @@ const Header = () => {
       }
     } catch (error) {
       console.error('Installation failed:', error);
+    }
+  };
+
+  const handleDetectDatabase = async () => {
+    if (!project?.path) {
+      addTerminalOutput('❌ No project loaded');
+      return;
+    }
+
+    try {
+      addTerminalOutput('🔍 Analyzing database and backend technologies...');
+      
+      const result = await electronAPI.detectTechStack();
+      if (result.success) {
+        const { techStack, projectType } = result.data;
+        
+        addTerminalOutput(`📊 Project Type: ${projectType}`);
+        
+        // Filter and display backend frameworks
+        const backends = techStack.filter(tech => 
+          tech.category === 'Backend' && 
+          (tech.type === 'framework' || tech.type === 'server')
+        );
+        
+        if (backends.length > 0) {
+          addTerminalOutput('🔧 Backend Frameworks:');
+          backends.forEach(backend => {
+            addTerminalOutput(`  ✓ ${backend.name} ${backend.version !== 'detected' ? `v${backend.version}` : '(detected)'}`);
+          });
+        }
+        
+        // Filter and display databases
+        const databases = techStack.filter(tech => 
+          tech.type === 'database' || tech.type === 'database-connection'
+        );
+        
+        if (databases.length > 0) {
+          addTerminalOutput('🗄️ Databases:');
+          databases.forEach(db => {
+            addTerminalOutput(`  ✓ ${db.name} ${db.version !== 'detected' ? `v${db.version}` : '(detected)'}`);
+            if (db.file) {
+              addTerminalOutput(`    📁 Found in: ${db.file}`);
+            }
+          });
+        } else {
+          addTerminalOutput('🗄️ No databases detected');
+        }
+        
+        // Show API endpoints if detected
+        const apis = techStack.filter(tech => 
+          tech.type === 'api' || tech.type === 'api-structure'
+        );
+        
+        if (apis.length > 0) {
+          addTerminalOutput('🌐 API Endpoints:');
+          apis.forEach(api => {
+            addTerminalOutput(`  ✓ ${api.name} (${api.file})`);
+          });
+        }
+        
+        addTerminalOutput('✅ Database and backend analysis completed!');
+      } else {
+        addTerminalOutput(`❌ Detection failed: ${result.message}`);
+      }
+    } catch (error) {
+      addTerminalOutput(`❌ Error: ${error.message}`);
     }
   };
 
@@ -148,6 +246,16 @@ const Header = () => {
           onClick={handleDetectTechStack}
         >
           Detect Tech Stack
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={Database}
+          onClick={handleDetectDatabase}
+          disabled={!project?.path}
+        >
+          Detect Database & Backend
         </Button>
         
         <Button

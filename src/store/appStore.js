@@ -50,6 +50,9 @@ export const useAppStore = create((set, get) => ({
   setProject: (project) => set({ project }),
   
   loadProject: async (projectData) => {
+    console.log('=== STORE: loadProject called ===');
+    console.log('Project data received:', JSON.stringify(projectData, null, 2));
+    
     // Handle different response formats with fallback logic
     const structure = projectData.data?.structure || 
                      projectData.project?.structure || 
@@ -58,10 +61,14 @@ export const useAppStore = create((set, get) => ({
     
     const project = projectData.data?.project || 
                    projectData.project || 
-                   null;
+                   {
+                     path: projectData.data?.rootPath || projectData.rootPath,
+                     name: projectData.data?.name || 'Unknown Project'
+                   };
     
     const analysis = projectData.data?.analysis || 
                     projectData.analysis || 
+                    projectData.data || 
                     {};
     
     // Extract npm scripts from package.json
@@ -73,9 +80,19 @@ export const useAppStore = create((set, get) => ({
       running: false
     }));
     
+    // Transform flat structure to tree if needed
+    const transformedFiles = Array.isArray(structure) ? structure : [];
+    
+    console.log('=== STORE: Setting project state ===');
+    console.log('Project:', project);
+    console.log('Files count:', transformedFiles.length);
+    console.log('Tech stack:', analysis.techStack || []);
+    console.log('Dependencies:', analysis.dependencies?.production || []);
+    console.log('NPM scripts:', npmScripts);
+    
     set({ 
       project: project,
-      projectFiles: structure,
+      projectFiles: transformedFiles,
       techStack: analysis.techStack || [],
       dependencies: analysis.dependencies?.production || [],
       npmScripts: npmScripts
