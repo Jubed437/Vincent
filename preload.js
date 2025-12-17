@@ -61,8 +61,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeAllListeners('terminal-output');
   },
   onProjectURL: (callback) => {
-    ipcRenderer.on('project:url', (event, url) => callback(url));
-    return () => ipcRenderer.removeAllListeners('project:url');
+    ipcRenderer.on('project-url', (event, url) => callback(url));
+    return () => ipcRenderer.removeAllListeners('project-url');
   },
   onProjectLoaded: (callback) => {
     ipcRenderer.on('project-loaded', (event, data) => callback(data));

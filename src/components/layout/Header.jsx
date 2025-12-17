@@ -188,16 +188,23 @@ const Header = () => {
         addTerminalOutput('🚀 Starting project...');
         
         const result = await electronAPI.startProject(project.path);
+        setIsStarting(false);
+        
         if (result.success) {
-          setProjectRunning(true);
           addTerminalOutput('✅ Project started successfully');
           if (result.data?.url) {
             setServerURL(result.data.url);
           }
+          setProjectRunning(true);
         } else {
-          addTerminalOutput(`❌ Failed to start project: ${result.message}`);
+          const errorMsg = result.message || '';
+          if (errorMsg.includes('Cannot find module') || errorMsg.includes('ENOENT')) {
+            addTerminalOutput(`❌ Failed to start: ${result.message}`);
+            addTerminalOutput('💡 Tip: Install dependencies first using "Install Dependencies" button');
+          } else {
+            addTerminalOutput(`❌ Failed to start project: ${result.message}`);
+          }
         }
-        setIsStarting(false);
       }
     } catch (error) {
       addTerminalOutput(`❌ Error: ${error.message}`);
@@ -216,8 +223,11 @@ const Header = () => {
     <header className="h-12 bg-vscode-panel border-b border-vscode-border flex items-center justify-between px-4" style={{ WebkitAppRegion: 'drag' }}>
       {/* Left side - Logo and title */}
       <div className="flex items-center gap-3 min-w-0">
-        <img src="/icon.png" alt="Vincent" className="w-6 h-6" />
-        <h1 className="text-vscode-text font-semibold">Vincent</h1>
+        <img src="/icon.png" alt="SnapSetup" className="w-8 h-8" />
+        <div className="flex items-center gap-2">
+          <h1 className="text-vscode-text font-semibold">SnapSetup</h1>
+          <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded border border-blue-500/30 font-medium">BETA</span>
+        </div>
       </div>
 
       {/* Center - Action buttons */}
@@ -268,7 +278,7 @@ const Header = () => {
           onClick={handleStartProject}
           disabled={isStarting || isStopping}
         >
-          {isStarting ? 'Starting...' : isStopping ? 'Stopping...' : isProjectRunning ? 'Stop' : 'Start'} Project
+          {isStarting ? 'Starting Project...' : isStopping ? 'Stopping Project...' : isProjectRunning ? 'Stop Project' : 'Start Project'}
         </Button>
         
         {serverURL && (

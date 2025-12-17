@@ -1,6 +1,6 @@
 {
-  "name": "vincent-desktop",
-  "version": "1.0.0",
+  "name": "snapsetup",
+  "version": "0.1.0-beta",
   "description": "AI-powered JavaScript project analyzer",
   "main": "main.js",
   "scripts": {
@@ -22,6 +22,7 @@
     "framer-motion": "^10.16.4",
     "fuse.js": "^7.1.0",
     "lucide-react": "^0.561.0",
+    "mermaid": "^11.12.2",
     "node-pty": "^1.0.0",
     "npm-audit-html": "^1.5.0",
     "prismjs": "^1.30.0",

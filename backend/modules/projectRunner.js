@@ -75,6 +75,7 @@ class ProjectRunner {
                 const url = this.extractUrl(line);
                 if (url) {
                   this.serverUrl = url;
+                  onOutput?.('🌐 Server running at: ' + url);
                   onUrlDetected?.(url);
                 }
                 
@@ -107,6 +108,7 @@ class ProjectRunner {
               const url = this.extractUrl(line);
               if (url) {
                 this.serverUrl = url;
+                onOutput?.('🌐 Server running at: ' + url);
                 onUrlDetected?.(url);
               }
               

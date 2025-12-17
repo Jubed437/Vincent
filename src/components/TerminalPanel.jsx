@@ -45,47 +45,45 @@ const TerminalPanel = () => {
     clearTerminalOutput();
   };
 
-  const startProject = async () => {
-    if (!project?.path) {
-      addTerminalOutput('No project loaded. Please upload a project first.');
-      return;
-    }
-    
-    try {
-      addTerminalOutput('Starting project...');
-      addTerminalOutput(`Project path: ${project.path}`);
-      
-      const result = await electronAPI.startProject(project.path);
-      
-      if (!result.success) {
-        addTerminalOutput(`Failed to start: ${result.message}`);
-      } else {
-        addTerminalOutput('Project started successfully');
-        setProjectRunning(true);
-        
-        // Check for server URL in output
-        if (result.output && result.output.includes('localhost')) {
-          const urlMatch = result.output.match(/https?:\/\/localhost:\d+/);
-          if (urlMatch) {
-            setServerURL(urlMatch[0]);
-          }
+  const handleStartStop = async () => {
+    if (isProjectRunning) {
+      // Stop project
+      try {
+        addTerminalOutput('🛑 Stopping project...');
+        const result = await electronAPI.stopProject();
+        if (result.success) {
+          setProjectRunning(false);
+          setServerURL(null);
+          addTerminalOutput('✅ Project stopped successfully');
+        } else {
+          addTerminalOutput(`❌ Failed to stop: ${result.message}`);
         }
+      } catch (error) {
+        addTerminalOutput(`❌ Error: ${error.message}`);
       }
-    } catch (error) {
-      addTerminalOutput(`Error: ${error.message}`);
-    }
-  };
-
-  const stopProject = async () => {
-    try {
-      const result = await electronAPI.stopProject();
-      if (result.success) {
-        addTerminalOutput('Project stopped');
-        setProjectRunning(false);
-        setServerURL(null);
+    } else {
+      // Start project
+      if (!project?.path) {
+        addTerminalOutput('❌ No project loaded. Please upload a project first.');
+        return;
       }
-    } catch (error) {
-      addTerminalOutput(`Failed to stop project: ${error.message}`);
+      
+      try {
+        addTerminalOutput('🚀 Starting project...');
+        const result = await electronAPI.startProject(project.path);
+        
+        if (result.success) {
+          addTerminalOutput('✅ Project started successfully');
+          if (result.data?.url) {
+            setServerURL(result.data.url);
+          }
+          setProjectRunning(true);
+        } else {
+          addTerminalOutput(`❌ Failed to start: ${result.message}`);
+        }
+      } catch (error) {
+        addTerminalOutput(`❌ Error: ${error.message}`);
+      }
     }
   };
 
@@ -109,28 +107,16 @@ const TerminalPanel = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          {!isProjectRunning ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Play}
-              onClick={startProject}
-              className="text-xs text-green-400 hover:text-green-300"
-              disabled={!project?.path}
-            >
-              Start
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Square}
-              onClick={stopProject}
-              className="text-xs text-red-400 hover:text-red-300"
-            >
-              Stop
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={isProjectRunning ? Square : Play}
+            onClick={handleStartStop}
+            className={`text-xs ${isProjectRunning ? 'text-red-400 hover:text-red-300' : 'text-green-400 hover:text-green-300'}`}
+            disabled={!isProjectRunning && !project?.path}
+          >
+            {isProjectRunning ? 'Stop' : 'Start'}
+          </Button>
           {serverURL && (
             <Button
               variant="ghost"
@@ -199,34 +185,47 @@ const TerminalPanel = () => {
       )}
 
       {/* Terminal Content */}
-      <div className="flex-1 flex flex-col bg-black">
+      <div className="flex-1 flex flex-col bg-black min-h-0">
         {/* Terminal Output */}
         <div 
           ref={terminalRef}
-          className="flex-1 p-4 overflow-y-scroll font-mono text-sm text-green-400"
-          style={{ minHeight: '200px', maxHeight: '400px' }}
+          className="flex-1 p-4 overflow-y-auto font-mono text-sm text-green-400 min-h-0"
+          style={{ maxHeight: '100%' }}
         >
-          {terminalOutput.map((output, index) => (
-            <div key={output.id || index} className="mb-1">
-              <span className="text-gray-500 text-xs mr-2">{output.timestamp}</span>
-              <span>{output.text}</span>
-            </div>
-          ))}
-        </div>
-        
-        {/* Terminal Input */}
-        <div className="border-t border-gray-700 p-2">
-          <div className="flex items-center">
-            <span className="text-green-400 mr-2">$</span>
-            <input
-              type="text"
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1 bg-transparent text-green-400 outline-none font-mono"
-              placeholder="Enter command..."
-            />
-          </div>
+          {terminalOutput.map((output, index) => {
+            const text = output.text || '';
+            // Strip ANSI color codes more thoroughly
+            const cleanText = text
+              .replace(/\x1b\[[0-9;]*m/g, '')
+              .replace(/\[\d+m/g, '')
+              .replace(/\u001b\[[0-9;]*m/g, '');
+            
+            // More comprehensive URL regex
+            const urlRegex = /(https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d+)?(?:\/[^\s]*)?)/gi;
+            const parts = cleanText.split(urlRegex);
+            
+            return (
+              <div key={output.id || index} className="mb-1">
+                <span className="text-gray-500 text-xs mr-2">{output.timestamp}</span>
+                <span>
+                  {parts.map((part, i) => {
+                    if (part && part.match(urlRegex)) {
+                      return (
+                        <span
+                          key={i}
+                          onClick={() => electronAPI.openExternal(part)}
+                          className="text-blue-400 underline cursor-pointer hover:text-blue-300 font-bold"
+                        >
+                          {part}
+                        </span>
+                      );
+                    }
+                    return <span key={i}>{part}</span>;
+                  })}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

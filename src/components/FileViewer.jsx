@@ -7,6 +7,7 @@ import { useAppStore } from '../store/appStore';
 import Card from './ui/Card';
 import Button from './ui/Button';
 import electronAPI from '../utils/electronAPI';
+import MermaidViewer from './MermaidViewer';
 
 const FileViewer = () => {
   const { selectedFile } = useAppStore();
@@ -32,6 +33,15 @@ const FileViewer = () => {
     const loadFileContent = async () => {
       if (!selectedFile || selectedFile.type === 'folder') {
         setFileContent('');
+        setError(null);
+        setIsBinary(false);
+        return;
+      }
+
+      // Check if this is a virtual file with embedded content
+      if (selectedFile.content) {
+        setFileContent(selectedFile.content);
+        setIsLoading(false);
         setError(null);
         setIsBinary(false);
         return;
@@ -119,6 +129,11 @@ const FileViewer = () => {
       </div>
     );
   }
+  
+  // Render visual diagram if it's a diagram file
+  if (selectedFile.isMermaid || selectedFile.diagramData) {
+    return <MermaidViewer data={selectedFile.diagramData} />;
+  }
 
   const Icon = getFileIcon(selectedFile.name);
   
@@ -179,8 +194,8 @@ const FileViewer = () => {
       </div>
 
       {/* File Content */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full p-4 space-y-4">
+      <div className="flex-1 overflow-auto">
+        <div className="p-4 space-y-4">
           {/* Lint Results */}
           {showLinting && lintResults && lintResults.issues.length > 0 && (
             <Card padding="sm">

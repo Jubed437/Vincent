@@ -86,7 +86,7 @@ class VincentEngine {
     });
 
     ipcMain.handle('stop-project', async () => {
-      return terminalManager.stopProject();
+      return projectRunner.stopProject();
     });
 
     ipcMain.handle('get-project-status', async () => {
@@ -380,60 +380,16 @@ class VincentEngine {
 
   async startProject(projectPath) {
     try {
-      // Check if project path exists
-      const fs = require('fs');
-      if (!fs.existsSync(projectPath)) {
-        return { success: false, message: 'Project path does not exist' };
-      }
-      
-      // Detect project type and determine start command
-      const packageJsonPath = require('path').join(projectPath, 'package.json');
-      let startCommand = 'npm start';
-      
-      try {
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-        
-        if (packageJson.scripts) {
-          if (packageJson.scripts.dev) {
-            startCommand = 'npm run dev';
-          } else if (packageJson.scripts.start) {
-            startCommand = 'npm start';
-          } else if (packageJson.scripts.serve) {
-            startCommand = 'npm run serve';
-          }
+      const result = await projectRunner.startProject(
+        projectPath,
+        (output) => terminalManager.addOutput(output),
+        (url) => {
+          terminalManager.logSuccess(`🌐 Server running at: ${url}`);
+          this.mainWindow.webContents.send('project-url', url);
         }
-      } catch (error) {
-        terminalManager.logWarning('No package.json found, using default start command');
-      }
+      );
       
-      // Use terminal manager to execute the start command
-      const result = await terminalManager.executeCommand(startCommand, projectPath);
-      
-      if (result.success) {
-        terminalManager.logSuccess(`Project started with: ${startCommand}`);
-        
-        // Try to detect server URL from output
-        let serverURL = null;
-        if (result.output) {
-          const urlMatch = result.output.match(/https?:\/\/localhost:\d+/i);
-          if (urlMatch) {
-            serverURL = urlMatch[0];
-            terminalManager.logInfo(`Server detected at: ${serverURL}`);
-          }
-        }
-        
-        return {
-          success: true,
-          message: 'Project started successfully',
-          data: {
-            command: startCommand,
-            url: serverURL
-          },
-          output: result.output
-        };
-      } else {
-        return result;
-      }
+      return result;
     } catch (error) {
       const errorMsg = `Failed to start project: ${error.message}`;
       terminalManager.logError(errorMsg);

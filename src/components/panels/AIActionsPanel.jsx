@@ -96,19 +96,25 @@ const AIActionsPanel = () => {
     
     try {
       const result = await electronAPI.startProject(project.path);
+      setIsStarting(false);
       
       if (result.success) {
-        setProjectRunning(true);
-        addTerminalOutput(`✅ Project started successfully`);
+        addTerminalOutput('✅ Project started successfully');
         if (result.data?.url) {
           setServerURL(result.data.url);
         }
+        setProjectRunning(true);
       } else {
-        addTerminalOutput(`❌ Failed to start project: ${result.message}`);
+        const errorMsg = result.message || '';
+        if (errorMsg.includes('Cannot find module') || errorMsg.includes('ENOENT')) {
+          addTerminalOutput(`❌ Failed to start: ${result.message}`);
+          addTerminalOutput('💡 Tip: Install dependencies first using "Install Dependencies" button');
+        } else {
+          addTerminalOutput(`❌ Failed to start project: ${result.message}`);
+        }
       }
     } catch (error) {
       addTerminalOutput(`❌ Error starting project: ${error.message}`);
-    } finally {
       setIsStarting(false);
     }
   };
@@ -395,11 +401,25 @@ const AIActionsPanel = () => {
     try {
       const result = await electronAPI.analyzeProjectEnhanced(project.path);
       
-      if (result.success && result.data.semanticAnalysis) {
-        setSemanticAnalysis(result.data.semanticAnalysis);
+      if (result.success) {
+        const analysis = result.data.semanticAnalysis || {};
+        setSemanticAnalysis(analysis);
+        
+        // Create analysis report
+        const report = generateAnalysisReport(result.data, analysis);
+        
+        // Display in editor by setting a virtual file
+        useAppStore.getState().setSelectedFile({
+          name: 'AI_Analysis_Report.md',
+          path: 'AI Analysis Report',
+          type: 'file',
+          content: report
+        });
+        
         addTerminalOutput('✅ AI: Deep analysis completed with LLM insights');
-        addTerminalOutput(`📊 Found ${result.data.semanticAnalysis.criticalIssues?.length || 0} critical issues`);
-        addTerminalOutput(`💡 Generated ${result.data.semanticAnalysis.recommendations?.length || 0} recommendations`);
+        addTerminalOutput(`📊 Found ${analysis.criticalIssues?.length || 0} critical issues`);
+        addTerminalOutput(`💡 Generated ${analysis.recommendations?.length || 0} recommendations`);
+        addTerminalOutput('📄 Analysis report displayed in editor');
       } else {
         addTerminalOutput('⚠️ AI: Analysis completed with basic insights (LLM unavailable)');
       }
@@ -408,6 +428,182 @@ const AIActionsPanel = () => {
     } finally {
       setIsRunningDeepAnalysis(false);
     }
+  };
+  
+  const generateMermaidDiagram = async () => {
+    if (!project?.path) {
+      addTerminalOutput('❌ No project loaded');
+      return;
+    }
+    
+    addTerminalOutput('📊 Generating project flow diagram...');
+    
+    try {
+      const result = await electronAPI.analyzeProjectEnhanced(project.path);
+      
+      if (result.success) {
+        const diagramData = generateDiagramData(result.data);
+        
+        // Display in editor
+        useAppStore.getState().setSelectedFile({
+          name: 'Project_Flow_Diagram',
+          path: 'Visual Diagram',
+          type: 'file',
+          diagramData: diagramData,
+          isMermaid: true
+        });
+        
+        addTerminalOutput('✅ Flow diagram generated successfully');
+        addTerminalOutput('📄 Diagram displayed in editor');
+      }
+    } catch (error) {
+      addTerminalOutput(`❌ Failed to generate diagram: ${error.message}`);
+    }
+  };
+  
+  const generateDiagramData = (data) => {
+    const nodes = [];
+    
+    // Start node
+    nodes.push({
+      type: 'start',
+      icon: '🚀',
+      title: 'Project Start',
+      subtitle: data.projectType || 'Application'
+    });
+    
+    // Tech Stack
+    if (data.techStack?.length > 0) {
+      nodes.push({
+        type: 'tech',
+        icon: '🔧',
+        title: 'Tech Stack',
+        subtitle: `${data.techStack.length} technologies`
+      });
+      
+      data.techStack.slice(0, 3).forEach(tech => {
+        nodes.push({
+          type: 'tech',
+          icon: '⚡',
+          title: tech.name,
+          subtitle: `v${tech.version}`
+        });
+      });
+    }
+    
+    // Dependencies
+    if (data.dependencies?.production?.length > 0) {
+      nodes.push({
+        type: 'dep',
+        icon: '📦',
+        title: 'Dependencies',
+        subtitle: `${data.dependencies.production.length} packages`
+      });
+    }
+    
+    // API/Backend Flow
+    if (data.projectType?.includes('Backend') || data.projectType?.includes('Express')) {
+      nodes.push({
+        type: 'api',
+        icon: '🌐',
+        title: 'API Layer',
+        subtitle: 'Routes & Controllers'
+      });
+      
+      nodes.push({
+        type: 'db',
+        icon: '💾',
+        title: 'Database',
+        subtitle: 'Data Storage'
+      });
+    }
+    
+    // Frontend Flow
+    if (data.projectType?.includes('React') || data.projectType?.includes('Frontend')) {
+      nodes.push({
+        type: 'api',
+        icon: '🎨',
+        title: 'UI Components',
+        subtitle: 'User Interface'
+      });
+      
+      nodes.push({
+        type: 'tech',
+        icon: '🔄',
+        title: 'State Management',
+        subtitle: 'Application State'
+      });
+    }
+    
+    // End node
+    nodes.push({
+      type: 'end',
+      icon: '✅',
+      title: 'Output',
+      subtitle: 'Production Ready'
+    });
+    
+    return nodes;
+  };
+  
+  const generateAnalysisReport = (data, semanticAnalysis) => {
+    const report = [];
+    
+    report.push('# 🧠 AI Deep Analysis Report\n');
+    report.push(`**Project:** ${project?.name || 'Unknown'}\n`);
+    report.push(`**Analysis Date:** ${new Date().toLocaleString()}\n`);
+    report.push('\n---\n\n');
+    
+    // Project Overview
+    report.push('## 📊 Project Overview\n\n');
+    report.push(`- **Type:** ${data.projectType || 'Unknown'}\n`);
+    report.push(`- **Technologies:** ${data.techStack?.length || 0} detected\n`);
+    report.push(`- **Dependencies:** ${data.dependencies?.production?.length || 0} production, ${data.dependencies?.development?.length || 0} development\n`);
+    report.push('\n');
+    
+    // Tech Stack
+    if (data.techStack?.length > 0) {
+      report.push('## 🔧 Technology Stack\n\n');
+      data.techStack.forEach(tech => {
+        report.push(`- **${tech.name}** (${tech.category}) - v${tech.version}\n`);
+      });
+      report.push('\n');
+    }
+    
+    // Critical Issues
+    if (semanticAnalysis.criticalIssues?.length > 0) {
+      report.push('## ⚠️ Critical Issues\n\n');
+      semanticAnalysis.criticalIssues.forEach((issue, i) => {
+        report.push(`### ${i + 1}. ${issue.title || issue}\n`);
+        if (typeof issue === 'object') {
+          report.push(`${issue.description || ''}\n`);
+          if (issue.severity) report.push(`**Severity:** ${issue.severity}\n`);
+          if (issue.file) report.push(`**File:** ${issue.file}\n`);
+        }
+        report.push('\n');
+      });
+    }
+    
+    // Recommendations
+    if (semanticAnalysis.recommendations?.length > 0) {
+      report.push('## 💡 Recommendations\n\n');
+      semanticAnalysis.recommendations.forEach((rec, i) => {
+        report.push(`${i + 1}. ${rec}\n`);
+      });
+      report.push('\n');
+    }
+    
+    // Framework Insights
+    if (semanticAnalysis.frameworkInsights) {
+      report.push('## 🎯 Framework Insights\n\n');
+      report.push(JSON.stringify(semanticAnalysis.frameworkInsights, null, 2));
+      report.push('\n\n');
+    }
+    
+    report.push('---\n\n');
+    report.push('*Generated by SnapSetup AI Analysis*\n');
+    
+    return report.join('');
   };
 
   const workflowSteps = [
@@ -507,38 +703,6 @@ const AIActionsPanel = () => {
         </div>
       </Card>
 
-      {/* AI Workflow Progress */}
-      <Card>
-        <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
-          <Bot size={16} className="text-vscode-accent" />
-          AI Analysis Progress
-        </h4>
-        <div className="space-y-2">
-          {workflowSteps.map((step, index) => (
-            <motion.div
-              key={step.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-center gap-3"
-            >
-              <div className={`w-2 h-2 rounded-full ${
-                step.status === 'completed' ? 'bg-vscode-success' :
-                step.status === 'in-progress' ? 'bg-vscode-warning animate-pulse' :
-                'bg-vscode-border'
-              }`} />
-              <span className={`text-sm ${
-                step.status === 'completed' ? 'text-vscode-text' :
-                step.status === 'in-progress' ? 'text-vscode-warning' :
-                'text-vscode-text-muted'
-              }`}>
-                {step.name}
-              </span>
-            </motion.div>
-          ))}
-        </div>
-      </Card>
-
       {/* Ollama Connection Status */}
       <Card>
         <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
@@ -602,6 +766,16 @@ const AIActionsPanel = () => {
             {isRunningDeepAnalysis ? 'Running Deep Analysis...' : 'Deep AI Analysis'}
           </Button>
           
+          <Button
+            variant="secondary"
+            icon={FileSearch}
+            onClick={generateMermaidDiagram}
+            disabled={!project}
+            className="w-full"
+          >
+            Generate Flow Diagram
+          </Button>
+          
           {semanticInsights && (
             <div className="text-xs text-vscode-text-muted bg-vscode-hover p-2 rounded">
               ✅ Enhanced analysis available - check Project Summary for insights
@@ -616,114 +790,7 @@ const AIActionsPanel = () => {
         </div>
       </Card>
 
-      {/* AI Actions */}
-      <div className="space-y-3">
-        {aiActions.map((action, index) => (
-          <motion.div
-            key={action.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card hover className="cursor-pointer" onClick={action.action}>
-              <div className="flex items-start gap-3">
-                <div className={`p-2 rounded-lg bg-vscode-hover ${action.color}`}>
-                  <action.icon size={20} />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <h5 className="text-vscode-text font-medium text-sm mb-1">
-                    {action.title}
-                  </h5>
-                  <p className="text-vscode-text-muted text-xs leading-relaxed">
-                    {action.description}
-                  </p>
-                </div>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon={Play}
-                  className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                />
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <h4 className="text-vscode-text font-medium mb-3">Quick Actions</h4>
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={Search}
-            onClick={async () => {
-              if (!project?.path) {
-                addTerminalOutput('❌ No project loaded');
-                return;
-              }
-              
-              addTerminalOutput('🔍 Running comprehensive analysis...');
-              
-              // Run all available analyses
-              const [linting, security, indexing] = await Promise.all([
-                electronAPI.lintProject(project.path),
-                electronAPI.scanVulnerabilities(project.path),
-                electronAPI.indexProject(project.path)
-              ]);
-              
-              addTerminalOutput('✅ Full analysis complete');
-              
-              if (linting.success) {
-                const { summary } = linting.data;
-                addTerminalOutput(`🐛 Code Issues: ${summary.totalErrors} errors, ${summary.totalWarnings} warnings`);
-                setAnalysisState(prev => ({ ...prev, structureAnalyzed: true }));
-              }
-              
-              if (security.success) {
-                const { summary } = security.data;
-                addTerminalOutput(`🛡️ Security: ${summary.total} vulnerabilities found`);
-                setAnalysisState(prev => ({ ...prev, securityScanned: true }));
-              }
-              
-              if (indexing.success) {
-                addTerminalOutput(`📁 Indexed ${indexing.data.filesIndexed} files for search`);
-              }
-            }}
-          >
-            Full Analysis
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={Zap}
-            onClick={async () => {
-              if (!project?.path) {
-                addTerminalOutput('❌ No project loaded');
-                return;
-              }
-              
-              addTerminalOutput('⚡ Quick code quality scan...');
-              const result = await electronAPI.lintProject(project.path);
-              if (result.success) {
-                const { summary } = result.data;
-                addTerminalOutput(`✅ Scanned ${summary.filesLinted} files`);
-                addTerminalOutput(`📊 Found ${summary.totalIssues} code quality issues`);
-                if (summary.totalErrors > 0) {
-                  addTerminalOutput(`🔴 ${summary.totalErrors} errors need immediate attention`);
-                }
-              } else {
-                addTerminalOutput('❌ Quick scan failed');
-              }
-            }}
-          >
-            Quick Scan
-          </Button>
-        </div>
-      </Card>
     </div>
   );
 };
