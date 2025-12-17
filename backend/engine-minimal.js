@@ -4,7 +4,6 @@ class VincentEngineMinimal {
   constructor(mainWindow) {
     this.mainWindow = mainWindow;
     this.setupBasicHandlers();
-    console.log('Minimal Vincent Engine initialized');
   }
 
   setupBasicHandlers() {
@@ -23,7 +22,6 @@ class VincentEngineMinimal {
       
       if (!result.canceled && result.filePaths.length > 0) {
         const projectPath = result.filePaths[0];
-        console.log('Selected project folder:', projectPath);
         return {
           success: true,
           message: 'Project loaded successfully',
@@ -43,7 +41,6 @@ class VincentEngineMinimal {
 
     // Load project handler (minimal)
     ipcMain.handle('load-project', async (event, projectPath) => {
-      console.log('Load project called:', projectPath);
       return {
         success: true,
         message: 'Project loaded (minimal)',
@@ -56,7 +53,6 @@ class VincentEngineMinimal {
 
     // File reading handler (minimal)
     ipcMain.handle('read-file-content', async (event, filePath) => {
-      console.log('Read file called:', filePath);
       return {
         success: true,
         data: {
@@ -68,23 +64,19 @@ class VincentEngineMinimal {
 
     // Terminal handlers (minimal)
     ipcMain.handle('create-terminal', async () => {
-      console.log('Create terminal called');
       return { success: true, terminalId: 'test-terminal' };
     });
 
     ipcMain.handle('terminal-input', async (event, input) => {
-      console.log('Terminal input:', input);
       return { success: true };
     });
 
     ipcMain.handle('kill-terminal', async () => {
-      console.log('Kill terminal called');
       return { success: true };
     });
 
     // Tech stack detection (minimal)
     ipcMain.handle('detect-tech-stack', async () => {
-      console.log('Detect tech stack called');
       return {
         success: true,
         message: 'Tech stack detected (minimal)',
@@ -97,7 +89,6 @@ class VincentEngineMinimal {
 
     // Install dependencies (minimal)
     ipcMain.handle('install-dependencies', async () => {
-      console.log('Install dependencies called');
       return {
         success: true,
         message: 'Dependencies installed (minimal)'
@@ -106,7 +97,6 @@ class VincentEngineMinimal {
 
     // Start/stop project (minimal)
     ipcMain.handle('start-project', async (event, projectPath) => {
-      console.log('Start project called:', projectPath);
       return {
         success: true,
         message: 'Project started (minimal)',
@@ -115,7 +105,6 @@ class VincentEngineMinimal {
     });
 
     ipcMain.handle('stop-project', async () => {
-      console.log('Stop project called');
       return {
         success: true,
         message: 'Project stopped (minimal)'

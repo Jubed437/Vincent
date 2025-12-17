@@ -12,7 +12,6 @@ function App() {
     try {
       // Check if we're in Electron environment
       const isElectron = typeof window !== 'undefined' && window.electronAPI;
-      console.log('Electron environment:', isElectron);
       
       // Simulate brief loading time to ensure everything is ready
       setTimeout(() => {

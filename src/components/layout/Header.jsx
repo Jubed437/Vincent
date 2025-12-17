@@ -16,14 +16,7 @@ const Header = () => {
     addTerminalOutput
   } = useAppStore();
   
-  // Check if electronAPI is available
-  useEffect(() => {
-    console.log('ElectronAPI available:', !!electronAPI);
-    console.log('ElectronAPI methods:', Object.keys(electronAPI || {}));
-    if (typeof window !== 'undefined') {
-      console.log('Window.electronAPI:', !!window.electronAPI);
-    }
-  }, []);
+
   
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
@@ -41,14 +34,12 @@ const Header = () => {
       addTerminalOutput('📁 Selecting project folder...');
       
       const result = await electronAPI.selectProjectFolder();
-      console.log('Dialog result:', result);
       
       if (result.success && result.path) {
         addTerminalOutput(`📂 Loading project: ${result.path}`);
         
         // Load the project
         const projectData = await electronAPI.loadProject(result.path);
-        console.log('Project data:', projectData);
         
         if (projectData.success) {
           await loadProject(projectData);
@@ -82,25 +73,26 @@ const Header = () => {
     try {
       const result = await electronAPI.detectTechStack();
       if (result.success) {
-        console.log('Tech stack detected:', result);
+        addTerminalOutput('✅ Tech stack detected successfully');
       } else {
-        console.error('Tech stack detection failed:', result.message);
+        addTerminalOutput(`❌ Tech stack detection failed: ${result.message}`);
       }
     } catch (error) {
-      console.error('Analysis failed:', error);
+      addTerminalOutput(`❌ Analysis failed: ${error.message}`);
     }
   };
 
   const handleInstallDependencies = async () => {
     try {
+      addTerminalOutput('📦 Installing dependencies...');
       const result = await electronAPI.installDependencies();
       if (result.success) {
-        console.log('Dependencies installed successfully');
+        addTerminalOutput('✅ Dependencies installed successfully');
       } else {
-        console.error('Installation failed:', result.message);
+        addTerminalOutput(`❌ Installation failed: ${result.message}`);
       }
     } catch (error) {
-      console.error('Installation failed:', error);
+      addTerminalOutput(`❌ Installation failed: ${error.message}`);
     }
   };
 

@@ -20,7 +20,6 @@ class VincentEngine {
       this.setupIpcHandlers();
       this.setupTerminalListener();
       terminalManager.logInfo('Vincent Engine initialized successfully');
-      console.log('Vincent Engine ready');
     } catch (error) {
       console.error('Failed to initialize Vincent Engine:', error);
       terminalManager.logError(`Engine initialization failed: ${error.message}`);
@@ -30,21 +29,16 @@ class VincentEngine {
   setupIpcHandlers() {
     // Project Upload
     ipcMain.handle('select-project-folder', async () => {
-      console.log('IPC: select-project-folder called');
       try {
         const result = await dialog.showOpenDialog(this.mainWindow, {
           properties: ['openDirectory'],
           title: 'Select Project Folder'
         });
         
-        console.log('Dialog result:', result);
-        
         if (!result.canceled && result.filePaths.length > 0) {
-          console.log('Folder selected:', result.filePaths[0]);
           return { success: true, path: result.filePaths[0] };
         }
         
-        console.log('No folder selected or dialog canceled');
         return { success: false, message: 'No folder selected' };
       } catch (error) {
         console.error('Error in select-project-folder:', error);
@@ -242,9 +236,7 @@ class VincentEngine {
   }
 
   setupTerminalDataListener(terminalId) {
-    console.log(`Setting up terminal data listener for: ${terminalId}`);
     const result = terminalManager.onTerminalData(terminalId, (data) => {
-      console.log(`Terminal data received:`, data);
       this.mainWindow.webContents.send('terminal-data', {
         terminalId: terminalId,
         text: data.data || data.text,
@@ -378,13 +370,9 @@ class VincentEngine {
 
   async startProject(projectPath) {
     try {
-      console.log('=== START PROJECT CALLED ===');
-      console.log('Project path:', projectPath);
-      
       // Check if project path exists
       const fs = require('fs');
       if (!fs.existsSync(projectPath)) {
-        console.log('Project path does not exist!');
         return { success: false, message: 'Project path does not exist' };
       }
       
@@ -392,11 +380,8 @@ class VincentEngine {
       const packageJsonPath = require('path').join(projectPath, 'package.json');
       let startCommand = 'npm start';
       
-      console.log('Looking for package.json at:', packageJsonPath);
-      
       try {
         const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-        console.log('Package.json found, scripts:', packageJson.scripts);
         
         if (packageJson.scripts) {
           if (packageJson.scripts.dev) {
@@ -408,15 +393,11 @@ class VincentEngine {
           }
         }
       } catch (error) {
-        console.log('Could not read package.json:', error.message);
         terminalManager.logWarning('No package.json found, using default start command');
       }
-
-      console.log('Final start command:', startCommand);
       
       // Use terminal manager to execute the start command
       const result = await terminalManager.executeCommand(startCommand, projectPath);
-      console.log('Terminal manager result:', result);
       
       if (result.success) {
         terminalManager.logSuccess(`Project started with: ${startCommand}`);
@@ -441,12 +422,10 @@ class VincentEngine {
           output: result.output
         };
       } else {
-        console.log('Terminal manager failed:', result.message);
         return result;
       }
     } catch (error) {
       const errorMsg = `Failed to start project: ${error.message}`;
-      console.log('Start project error:', errorMsg);
       terminalManager.logError(errorMsg);
       return {
         success: false,

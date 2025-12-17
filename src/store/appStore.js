@@ -50,9 +50,6 @@ export const useAppStore = create((set, get) => ({
   setProject: (project) => set({ project }),
   
   loadProject: async (projectData) => {
-    console.log('=== STORE: loadProject called ===');
-    console.log('Project data received:', JSON.stringify(projectData, null, 2));
-    
     // Handle different response formats with fallback logic
     const structure = projectData.data?.structure || 
                      projectData.project?.structure || 
@@ -82,13 +79,6 @@ export const useAppStore = create((set, get) => ({
     
     // Transform flat structure to tree if needed
     const transformedFiles = Array.isArray(structure) ? structure : [];
-    
-    console.log('=== STORE: Setting project state ===');
-    console.log('Project:', project);
-    console.log('Files count:', transformedFiles.length);
-    console.log('Tech stack:', analysis.techStack || []);
-    console.log('Dependencies:', analysis.dependencies?.production || []);
-    console.log('NPM scripts:', npmScripts);
     
     set({ 
       project: project,

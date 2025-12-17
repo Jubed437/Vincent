@@ -7,7 +7,6 @@ let mainWindow;
 let vincentEngine;
 
 function createWindow() {
-  console.log('Creating Electron window...');
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -24,7 +23,6 @@ function createWindow() {
   // Initialize Vincent Engine
   try {
     vincentEngine = new VincentEngine(mainWindow);
-    console.log('Vincent Engine initialized successfully');
   } catch (error) {
     console.error('Failed to initialize Vincent Engine:', error);
   }
@@ -35,10 +33,6 @@ function createWindow() {
     mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
   });
   ipcMain.on('close-window', () => {
-    // Clean up any running processes before closing
-    if (vincentEngine) {
-      console.log('Cleaning up Vincent Engine...');
-    }
     mainWindow.close();
   });
 
@@ -52,12 +46,10 @@ function createWindow() {
   // Load the app
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173').then(() => {
-      console.log('Dev server loaded successfully');
       mainWindow.show();
       mainWindow.maximize();
     }).catch(err => {
       console.error('Failed to load dev server:', err);
-      // Show window anyway and retry
       mainWindow.show();
       setTimeout(() => {
         mainWindow.loadURL('http://localhost:5173');
@@ -73,14 +65,12 @@ function createWindow() {
   // Fallback: show window after 3 seconds if not shown yet
   setTimeout(() => {
     if (!mainWindow.isVisible()) {
-      console.log('Fallback: showing window');
       mainWindow.show();
     }
   }, 3000);
 }
 
 app.whenReady().then(() => {
-  console.log('Electron app ready');
   createWindow();
 });
 
