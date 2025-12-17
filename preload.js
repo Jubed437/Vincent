@@ -83,6 +83,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // External URLs
   openExternal: (url) => ipcRenderer.invoke('open:external', url),
   
+  // Ollama
+  checkOllamaConnection: () => ipcRenderer.invoke('check-ollama-connection'),
+  ollamaGenerate: (prompt, systemPrompt) => ipcRenderer.invoke('ollama-generate', prompt, systemPrompt),
+  
   // Remove listeners
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)
 });

@@ -36,6 +36,8 @@ const AIActionsPanel = () => {
   const [isRunningDeepAnalysis, setIsRunningDeepAnalysis] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
+  const [ollamaStatus, setOllamaStatus] = useState(null);
+  const [checkingOllama, setCheckingOllama] = useState(false);
   const [analysisState, setAnalysisState] = useState({
     structureAnalyzed: false,
     dependenciesDetected: false,
@@ -51,6 +53,37 @@ const AIActionsPanel = () => {
     });
     return unsubscribe;
   }, [setServerURL]);
+
+  // Check Ollama connection on mount
+  useEffect(() => {
+    checkOllamaConnection();
+  }, []);
+
+  const checkOllamaConnection = async () => {
+    setCheckingOllama(true);
+    addTerminalOutput('🔍 Checking Ollama connection...');
+    
+    try {
+      const result = await electronAPI.checkOllamaConnection();
+      setOllamaStatus(result);
+      
+      if (result.connected) {
+        addTerminalOutput(`✅ Ollama is connected!`);
+        addTerminalOutput(`📦 Available models: ${result.availableModels?.join(', ') || 'none'}`);
+      } else {
+        addTerminalOutput(`❌ Ollama is not connected`);
+        addTerminalOutput(`⚠️ ${result.error || 'Unknown error'}`);
+        if (result.suggestion) {
+          addTerminalOutput(`💡 ${result.suggestion}`);
+        }
+      }
+    } catch (error) {
+      addTerminalOutput(`❌ Failed to check Ollama: ${error.message}`);
+      setOllamaStatus({ connected: false, error: error.message });
+    } finally {
+      setCheckingOllama(false);
+    }
+  };
 
   const startProject = async () => {
     if (!project?.path) {
@@ -506,6 +539,52 @@ const AIActionsPanel = () => {
         </div>
       </Card>
 
+      {/* Ollama Connection Status */}
+      <Card>
+        <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
+          <Bot size={16} className="text-blue-400" />
+          Ollama Status
+        </h4>
+        <div className="space-y-3">
+          {ollamaStatus && (
+            <div className={`p-2 rounded text-xs ${
+              ollamaStatus.connected 
+                ? 'bg-green-900/20 border border-green-700/30' 
+                : 'bg-red-900/20 border border-red-700/30'
+            }`}>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${
+                  ollamaStatus.connected ? 'bg-green-400' : 'bg-red-400'
+                }`} />
+                <span className={ollamaStatus.connected ? 'text-green-400' : 'text-red-400'}>
+                  {ollamaStatus.connected ? 'Connected' : 'Disconnected'}
+                </span>
+              </div>
+              {ollamaStatus.connected && ollamaStatus.availableModels?.length > 0 && (
+                <div className="mt-1 text-gray-300">
+                  Models: {ollamaStatus.availableModels.slice(0, 2).join(', ')}
+                  {ollamaStatus.availableModels.length > 2 && ` +${ollamaStatus.availableModels.length - 2} more`}
+                </div>
+              )}
+              {!ollamaStatus.connected && ollamaStatus.error && (
+                <div className="mt-1 text-gray-300">
+                  {ollamaStatus.error}
+                </div>
+              )}
+            </div>
+          )}
+          <Button
+            variant="secondary"
+            icon={checkingOllama ? Loader2 : Bot}
+            onClick={checkOllamaConnection}
+            disabled={checkingOllama}
+            className={`w-full ${checkingOllama ? 'animate-pulse' : ''}`}
+          >
+            {checkingOllama ? 'Checking...' : 'Check Connection'}
+          </Button>
+        </div>
+      </Card>
+
       {/* Deep AI Analysis */}
       <Card>
         <h4 className="text-vscode-text font-medium mb-3 flex items-center gap-2">
@@ -526,6 +605,12 @@ const AIActionsPanel = () => {
           {semanticInsights && (
             <div className="text-xs text-vscode-text-muted bg-vscode-hover p-2 rounded">
               ✅ Enhanced analysis available - check Project Summary for insights
+            </div>
+          )}
+          
+          {!ollamaStatus?.connected && (
+            <div className="text-xs text-yellow-400 bg-yellow-900/20 p-2 rounded border border-yellow-700/30">
+              ⚠️ Using Grok API (Ollama not connected)
             </div>
           )}
         </div>

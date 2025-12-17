@@ -10,6 +10,7 @@ const editorManager = require('./modules/editorManager');
 const codeLinter = require('./modules/codeLinter');
 const vulnerabilityScanner = require('./modules/vulnerabilityScanner');
 const codeSearch = require('./modules/codeSearch');
+const ollamaClient = require('./modules/ollamaClient');
 
 class VincentEngine {
   constructor(mainWindow) {
@@ -226,6 +227,15 @@ class VincentEngine {
     ipcMain.handle('execute-terminal-command', async (event, command, cwd) => {
       const workingDir = cwd || this.currentProject?.path || process.cwd();
       return await terminalManager.executeCommand(command, workingDir);
+    });
+
+    // Ollama Connection Check
+    ipcMain.handle('check-ollama-connection', async () => {
+      return await ollamaClient.checkConnection();
+    });
+
+    ipcMain.handle('ollama-generate', async (event, prompt, systemPrompt) => {
+      return await ollamaClient.generate(prompt, systemPrompt);
     });
   }
 

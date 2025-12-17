@@ -284,6 +284,23 @@ class ElectronAPI {
     }
   }
 
+  // Ollama
+  async checkOllamaConnection() {
+    try {
+      return await window.electronAPI.checkOllamaConnection();
+    } catch (error) {
+      return { success: false, connected: false, error: error.message };
+    }
+  }
+
+  async ollamaGenerate(prompt, systemPrompt) {
+    try {
+      return await window.electronAPI.ollamaGenerate(prompt, systemPrompt);
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
   // Window Controls
   minimizeWindow() {
     window.electronAPI.minimizeWindow();
