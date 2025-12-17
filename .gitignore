@@ -1,4 +1,5 @@
 node_modules
+.npm/
 
 # Environment variables (contains API keys)
 .env
